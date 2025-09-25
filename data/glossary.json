@@ -1,0 +1,16 @@
+{
+  "terms": {
+    "Purchases": "Information about items or subscriptions you buy within the app (e.g., product IDs, purchase history). Often used for receipts, restoring purchases, or support.",
+    "Location": "Your approximate or precise location from your device (GPS, Bluetooth, Wi-Fi). Used for features like maps, nearby offers, or localisation.",
+    "Contacts": "Information from your address book if you grant access (names, emails, phone numbers). Apps may use this to help you connect with others.",
+    "Search History": "What you’ve searched for within the app or linked services. Useful for suggestions and improving results.",
+    "Identifiers": "Numbers that identify your device, account, or session (e.g., device ID, user ID, advertising ID). Used for login, security, analytics, or ads personalisation.",
+    "Diagnostics": "Crash logs, performance data, and other technical info that helps the developer fix problems and improve the app.",
+    "Financial Info": "Payment details you provide (card’s last digits, billing address) or other finance data required for transactions. Apps should explain what’s stored.",
+    "Contact Info": "Personal details like your name, email, phone number, or address that you provide to use the service.",
+    "User Content": "Content you create or upload (photos, videos, documents, messages). May be stored on-device or on the developer’s servers.",
+    "Browsing History": "Pages you view in an in-app browser or the developer’s web content. Used for features like ‘recently viewed’ or analytics.",
+    "Usage Data": "How you use the app (screen views, taps, feature time, interaction events). Often aggregated for analytics or product improvement.",
+    "Other Data": "Information that doesn’t fit neatly into other categories. Check the developer’s policy for specifics."
+  }
+}

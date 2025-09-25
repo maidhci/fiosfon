@@ -1,0 +1,228 @@
+{
+  "as_of": "17 Sep 2025",
+  "apps": [
+    {
+      "rank": 1,
+      "name": "Remini - AI Photo Enhancer",
+      "platform": "iOS",
+      "developer": "Bending Spoons Apps ApS",
+      "icon": "https://is1-ssl.mzstatic.com/image/thumb/Purple116/v4/4d/1a/7e/4d1a7e8d-4b3a-5a6f-cb4e-b6728b4d94d4/AppIcon-0-1x_U007emarketing-0-0-0-7-0-85-220.png/100x100bb.png",
+      "tracking_summary": [
+        "May collect identifiers and usage data for analytics/advertising",
+        "May process photos you upload for enhancement (on-device/server)"
+      ],
+      "privacy_labels": {
+        "Data Linked to You": [
+          "Identifiers",
+          "Usage Data",
+          "Diagnostics",
+          "User Content",
+          "Purchases"
+        ]
+      },
+      "sources": [
+        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/remini-ai-photo-enhancer/id1470373330" }
+      ]
+    },
+    {
+      "rank": 2,
+      "name": "Vinted: Shop & sell pre-loved",
+      "platform": "iOS",
+      "developer": "Vinted Limited",
+      "icon": "https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/8a/73/1b/8a731b56-30c0-b53c-cc31-2492efba91b0/AppIcon-0-0-1x_U007emarketing-0-0-0-6-0-85-220.png/100x100bb.png",
+      "tracking_summary": [
+        "Contact info, identifiers, usage data may be collected for account/services/ads"
+      ],
+      "privacy_labels": {
+        "Data Linked to You": [
+          "Contact Info",
+          "Identifiers",
+          "Purchases",
+          "Usage Data",
+          "User Content",
+          "Location"
+        ]
+      },
+      "sources": [
+        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/vinted/id632064380" }
+      ]
+    },
+    {
+      "rank": 3,
+      "name": "Google Gemini",
+      "platform": "iOS",
+      "developer": "Google",
+      "icon": "https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/27/5b/7a/275b7a16-8300-f7af-baa9-97cf68c29cc8/AppIcon-0-0-1x_U007emarketing-0-0-0-6-0-85-220.png/100x100bb.png",
+      "tracking_summary": [
+        "Identifiers & usage data may be collected; interactions may improve AI services"
+      ],
+      "privacy_labels": {
+        "Data Linked to You": [
+          "Purchases",
+          "Location",
+          "Contacts",
+          "Search History",
+          "Identifiers",
+          "Diagnostics",
+          "Financial Info",
+          "Contact Info",
+          "User Content",
+          "Browsing History",
+          "Usage Data",
+          "Other Data"
+        ]
+      },
+      "sources": [
+        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/google-gemini/id284815942" }
+      ]
+    },
+    {
+      "rank": 4,
+      "name": "ChatGPT",
+      "platform": "iOS",
+      "developer": "OpenAI",
+      "icon": "https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/f4/4e/1c/f44e1c0e-bc21-56f1-6404-2cbb1cba05a5/AppIcon-0-0-1x_U007emarketing-0-0-0-6-0-85-220.png/100x100bb.png",
+      "tracking_summary": [
+        "Usage data and identifiers may be collected; prompts may be used to improve services subject to settings"
+      ],
+      "privacy_labels": {
+        "Data Linked to You": [
+          "Identifiers",
+          "Usage Data",
+          "Diagnostics"
+        ]
+      },
+      "sources": [
+        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/chatgpt/id6448311069" }
+      ]
+    },
+    {
+      "rank": 5,
+      "name": "Microsoft Outlook",
+      "platform": "iOS",
+      "developer": "Microsoft Corporation",
+      "icon": "https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/22/f3/f1/22f3f1f4-49e1-00ae-1847-9c57e7acaa95/AppIcon-0-0-1x_U007emarketing-0-0-0-6-0-85-220.png/100x100bb.png",
+      "tracking_summary": [
+        "Contact info, identifiers, diagnostics may be collected for functionality and security"
+      ],
+      "privacy_labels": {
+        "Data Linked to You": [
+          "Contact Info",
+          "User Content",
+          "Identifiers",
+          "Usage Data",
+          "Diagnostics"
+        ]
+      },
+      "sources": [
+        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/microsoft-outlook/id951937596" }
+      ]
+    },
+    {
+      "rank": 6,
+      "name": "Microsoft Authenticator",
+      "platform": "iOS",
+      "developer": "Microsoft Corporation",
+      "icon": "https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/87/39/40/87394084-53c7-9c33-d56e-f89d5e2b6a18/AppIcon-0-0-1x_U007emarketing-0-0-0-6-0-85-220.png/100x100bb.png",
+      "tracking_summary": [
+        "Minimal data; device identifiers & diagnostics for security"
+      ],
+      "privacy_labels": {
+        "Data Linked to You": [
+          "Identifiers",
+          "Diagnostics",
+          "Usage Data"
+        ]
+      },
+      "sources": [
+        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/microsoft-authenticator/id983156458" }
+      ]
+    },
+    {
+      "rank": 7,
+      "name": "Microsoft Teams",
+      "platform": "iOS",
+      "developer": "Microsoft Corporation",
+      "icon": "https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/b8/7e/39/b87e39a6-fc9b-82f5-8bc5-f1b07aa2d9e6/AppIcon-0-0-1x_U007emarketing-0-0-0-6-0-85-220.png/100x100bb.png",
+      "tracking_summary": [
+        "Contact info, content, identifiers and diagnostics may be collected"
+      ],
+      "privacy_labels": {
+        "Data Linked to You": [
+          "Contact Info",
+          "User Content",
+          "Identifiers",
+          "Usage Data",
+          "Diagnostics"
+        ]
+      },
+      "sources": [
+        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/microsoft-teams/id1113153706" }
+      ]
+    },
+    {
+      "rank": 8,
+      "name": "Moodle",
+      "platform": "iOS",
+      "developer": "Moodle Pty Ltd",
+      "icon": "https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/0c/fd/50/0cfd50f7-ec77-f44a-9b22-1b8b6f47625d/AppIcon-0-0-1x_U007emarketing-0-0-0-6-0-85-220.png/100x100bb.png",
+      "tracking_summary": [
+        "Account info & usage data may be collected by your institution's Moodle instance"
+      ],
+      "privacy_labels": {
+        "Data Linked to You": [
+          "Contact Info",
+          "Identifiers",
+          "Usage Data",
+          "User Content"
+        ]
+      },
+      "sources": [
+        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/moodle/id633359593" }
+      ]
+    },
+    {
+      "rank": 9,
+      "name": "McDonald’s",
+      "platform": "iOS",
+      "developer": "McDonald's Global Markets LLC",
+      "icon": "https://is1-ssl.mzstatic.com/image/thumb/Purple126/v4/15/41/9a/15419a0a-b67f-7afc-3f92-5edfa1489f11/AppIcon-0-0-1x_U007emarketing-0-0-0-6-0-85-220.png/100x100bb.png",
+      "tracking_summary": [
+        "Location (approx), identifiers, purchase history and usage data for offers/personalisation"
+      ],
+      "privacy_labels": {
+        "Data Linked to You": [
+          "Location",
+          "Purchases",
+          "Identifiers",
+          "Usage Data",
+          "Contact Info"
+        ]
+      },
+      "sources": [
+        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/mcdonalds/id922103212" }
+      ]
+    },
+    {
+      "rank": 10,
+      "name": "Temu: Shop Like a Billionaire",
+      "platform": "iOS",
+      "developer": "Temu",
+      "icon": "https://is1-ssl.mzstatic.com/image/thumb/Purple116/v4/f8/01/fd/f801fd38-5af9-fbee-d038-28fa1c2e8d30/AppIcon-0-0-1x_U007emarketing-0-0-0-6-0-85-220.png/100x100bb.png",
+      "tracking_summary": [
+        "Identifiers, usage data, purchases; advertising & personalisation"
+      ],
+      "privacy_labels": {
+        "Data Linked to You": [
+          "Identifiers",
+          "Purchases",
+          "Usage Data",
+          "Contact Info"
+        ]
+      },
+      "sources": [
+        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/temu-shop-like-a-billionaire/id1641486559" }
+      ]
+    }
+  ]
+}
