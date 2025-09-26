@@ -1,0 +1,36 @@
+{
+  "as_of": "2025-09-26T20:21:28.539Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "Purchases",
+      "Identifiers",
+      "Usage Data",
+      "Advertising Data",
+      "Crash Data",
+      "Diagnostics",
+      "Other Data Types"
+    ],
+    "Data Linked to You": [
+      "Identifiers",
+      "Purchases",
+      "Physical Address",
+      "Contact Info",
+      "Name"
+    ],
+    "Data Not Linked to You": [
+      "Advertising Data",
+      "Other Data Types",
+      "Usage Data",
+      "Payment Info",
+      "Location",
+      "Crash Data",
+      "Diagnostics"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id399791956"
+    }
+  ]
+}

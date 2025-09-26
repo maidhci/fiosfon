@@ -1,0 +1,24 @@
+{
+  "as_of": "2025-09-26T20:23:20.173Z",
+  "privacy_labels": {
+    "Data Used to Track You": [],
+    "Data Linked to You": [
+      "Contact Info",
+      "Name",
+      "Customer Support"
+    ],
+    "Data Not Linked to You": [
+      "Gameplay Content",
+      "Usage Data",
+      "Purchases",
+      "Identifiers",
+      "Crash Data"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id1118115766"
+    }
+  ]
+}

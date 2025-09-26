@@ -1,0 +1,36 @@
+{
+  "as_of": "2025-09-26T20:21:36.499Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "Microsoft Corporation",
+      "Advertising Data",
+      "Usage Data",
+      "Location",
+      "Identifiers",
+      "Crash Data",
+      "Diagnostics",
+      "Contact Info",
+      "Name",
+      "Contacts",
+      "User Content"
+    ],
+    "Data Linked to You": [
+      "Usage Data",
+      "Location",
+      "Identifiers",
+      "Crash Data",
+      "Diagnostics",
+      "Contact Info",
+      "Name",
+      "Contacts",
+      "User Content"
+    ],
+    "Data Not Linked to You": []
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id541164041"
+    }
+  ]
+}

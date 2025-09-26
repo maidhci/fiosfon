@@ -1,0 +1,38 @@
+{
+  "as_of": "2025-09-26T20:22:53.214Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "Purchases",
+      "Identifiers"
+    ],
+    "Data Linked to You": [
+      "Usage Data",
+      "Purchases",
+      "Location",
+      "Contact Info",
+      "Identifiers",
+      "Name",
+      "User Content",
+      "Customer Support",
+      "Crash Data"
+    ],
+    "Data Not Linked to You": [
+      "Too Good To Go",
+      "Purchases",
+      "Identifiers",
+      "Usage Data",
+      "Location",
+      "Contact Info",
+      "Name",
+      "User Content",
+      "Customer Support",
+      "Crash Data"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id1060683933"
+    }
+  ]
+}

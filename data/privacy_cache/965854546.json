@@ -1,0 +1,40 @@
+{
+  "as_of": "2025-09-26T20:22:48.496Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "Aer Lingus",
+      "Identifiers",
+      "Contact Info",
+      "Browsing/Search History",
+      "Purchases",
+      "Payment Info",
+      "Physical Address",
+      "Name",
+      "Location",
+      "Usage Data",
+      "Crash Data",
+      "Customer Support"
+    ],
+    "Data Linked to You": [
+      "Identifiers",
+      "Contact Info",
+      "Browsing/Search History",
+      "Purchases",
+      "Payment Info",
+      "Physical Address",
+      "Name"
+    ],
+    "Data Not Linked to You": [
+      "Location",
+      "Usage Data",
+      "Crash Data",
+      "Customer Support"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id965854546"
+    }
+  ]
+}

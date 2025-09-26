@@ -1,0 +1,33 @@
+{
+  "as_of": "2025-09-26T20:21:05.318Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "Bending Spoons Apps ApS",
+      "Identifiers",
+      "Contact Info",
+      "Advertising Data",
+      "Usage Data",
+      "User Content"
+    ],
+    "Data Linked to You": [
+      "Bending Spoons Apps ApS",
+      "Identifiers",
+      "Contact Info",
+      "Advertising Data",
+      "Usage Data",
+      "User Content"
+    ],
+    "Data Not Linked to You": [
+      "Identifiers",
+      "Advertising Data",
+      "Usage Data",
+      "User Content"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id1470373330"
+    }
+  ]
+}

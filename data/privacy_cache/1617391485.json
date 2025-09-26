@@ -1,0 +1,25 @@
+{
+  "as_of": "2025-09-26T20:30:50.191Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "Hungry Studio",
+      "Identifiers",
+      "Advertising Data",
+      "Crash Data",
+      "Usage Data"
+    ],
+    "Data Linked to You": [],
+    "Data Not Linked to You": [
+      "Identifiers",
+      "Advertising Data",
+      "Crash Data",
+      "Usage Data"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id1617391485"
+    }
+  ]
+}
