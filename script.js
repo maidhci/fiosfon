@@ -30,8 +30,10 @@ const DEFAULT_ICON =
    Helpers
    ========================= */
 async function loadJSON(path){
-  const url = new URL(path, document.baseURI).toString();
-  const res = await fetch(url, { cache: 'no-store' });
+  const url = new URL(path, document.baseURI);
+  // Add cache-busting query so Pages/CDN can’t serve stale file
+  url.searchParams.set('v', Date.now().toString());
+  const res = await fetch(url.toString(), { cache: 'no-store' });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   const text = await res.text();
   try { return JSON.parse(text); } catch(e){ throw new Error(`Invalid JSON in ${url}: ${e.message}`); }
@@ -148,68 +150,122 @@ function openDrawer(title, body){
 function closeDrawer(){ const d=document.getElementById('glossary-drawer'); const b=document.getElementById('drawer-backdrop'); d.classList.remove('open'); d.setAttribute('aria-hidden','true'); b.hidden = true; }
 
 /* =========================
-   Risk meter
+   Risk meter (granular)
    ========================= */
+
+// Category weights (tune as you like)
+const RISK_WEIGHTS = {
+  // “track” section is generally higher risk than “linked” for the same field
+  track: {
+    "Identifiers": 12,
+    "Location": 12,
+    "Contact Info": 10,
+    "Financial Info": 12,
+    "Health & Fitness": 12,
+    "Browsing/Search History": 10,
+    "User Content": 8,
+    "Purchases": 6,
+    "Usage Data": 6,
+    "Diagnostics": 2,
+    "Photos or Videos": 8,
+    "Audio Data": 6,
+    "Messages": 10,
+    "Contacts": 8,
+    "Sensitive Info": 12
+  },
+  linked: {
+    "Identifiers": 9,
+    "Location": 9,
+    "Contact Info": 8,
+    "Financial Info": 9,
+    "Health & Fitness": 9,
+    "Browsing/Search History": 8,
+    "User Content": 7,
+    "Purchases": 4,
+    "Usage Data": 4,
+    "Diagnostics": 1,
+    "Photos or Videos": 7,
+    "Audio Data": 5,
+    "Messages": 8,
+    "Contacts": 6,
+    "Sensitive Info": 10
+  },
+  notLinked: {
+    // low impact, but still counts a little
+    "Identifiers": 2,
+    "Location": 2,
+    "Contact Info": 2,
+    "Financial Info": 2,
+    "Health & Fitness": 2,
+    "Browsing/Search History": 2,
+    "User Content": 2,
+    "Purchases": 1,
+    "Usage Data": 1,
+    "Diagnostics": 1,
+    "Photos or Videos": 2,
+    "Audio Data": 1,
+    "Messages": 2,
+    "Contacts": 1,
+    "Sensitive Info": 3
+  }
+};
+
+// Soft cap per section to add diminishing returns (prevents everything pegging at 100)
+const SECTION_CAPS = { track: 70, linked: 50, notLinked: 20 };
+
+// Smooth mapping: turn a raw 0–(cap sum) into a nicer 0–100 curve
+function smoothScale(x, max) {
+  // logistic-ish: more resolution in the middle, avoids pinning at extremes
+  const t = Math.max(0, Math.min(1, x / max));
+  const k = 5;              // curve steepness
+  const y = 1 / (1 + Math.exp(-k * (t - 0.5)));
+  return y * 100;
+}
+
 function computePrivacyScore(app){
   const labels = app.privacy_labels || {};
-  const keys = Object.keys(labels||{});
-  const countFor = (needle) => {
-    const k = keys.find(x => x.toLowerCase().includes(needle));
-    const v = k ? labels[k] : null;
-    return Array.isArray(v) ? v.length : 0;
+  const sections = {
+    track: labels["Data Used to Track You"] || labels["Data used to track you"] || [],
+    linked: labels["Data Linked to You"] || labels["Data linked to you"] || [],
+    notLinked: labels["Data Not Linked to You"] || labels["Data not linked to you"] || []
   };
-  const tracked   = countFor('track');
-  const linked    = countFor('linked');
-  const notLinked = countFor('not linked');
-  let raw = tracked*15 + linked*10 + notLinked*5;
-  if (raw > 100) raw = 100;
-  return { score: raw, tracked, linked, notLinked };
+
+  // Sum weighted scores per section with diminishing returns
+  const scoreSection = (items, weights, cap) => {
+    // unique normalized set
+    const set = new Set(items.map(s => String(s).trim()));
+    let sum = 0;
+    set.forEach(cat => { sum += (weights[cat] || 0); });
+    // diminishing returns: soft cap via sqrt
+    const softened = Math.sqrt(sum) * Math.sqrt(cap);
+    return Math.min(softened, cap);
+  };
+
+  const sTrack    = scoreSection(sections.track,    RISK_WEIGHTS.track,    SECTION_CAPS.track);
+  const sLinked   = scoreSection(sections.linked,   RISK_WEIGHTS.linked,   SECTION_CAPS.linked);
+  const sNotLinked= scoreSection(sections.notLinked,RISK_WEIGHTS.notLinked,SECTION_CAPS.notLinked);
+
+  const raw = sTrack + sLinked + sNotLinked;                 // 0 .. (70+50+20)=140
+  const score = Math.round(smoothScale(raw, 140));           // 0..100 smoothed
+
+  // For the label (Low/Medium/High) we’ll use more balanced thresholds
+  let band = "Low";
+  if (score >= 66) band = "High";
+  else if (score >= 33) band = "Medium";
+
+  return { score, band, parts: { sTrack, sLinked, sNotLinked } };
 }
+
 function renderRiskMeter(containerEl, app){
-  const { score } = computePrivacyScore(app);
+  const { score, band } = computePrivacyScore(app);
   const pct = Math.max(0, Math.min(100, score));
   containerEl.innerHTML = `
-    <div class="risk-label">Data collection intensity</div>
+    <div class="risk-label">Data collection intensity <strong>${band}</strong></div>
     <div class="risk-bar" role="img" aria-label="Data collection intensity ${pct} out of 100">
       <span style="--p:${pct}%"></span>
     </div>
     <div class="risk-scale"><span>low</span><span>medium</span><span>high</span></div>
   `;
-}
-
-/* =========================
-   Rendering
-   ========================= */
-function renderAsOf(boardKey){
-  const el = document.getElementById(`asof-${boardKey}`);
-  const val = state.boards[boardKey].asOf;
-  if (el) el.textContent = val ? `(updated ${val})` : '';
-}
-
-async function resolveIcon(imgEl, app){
-  const trySearchFirst = app.icon && /mzstatic\.com/.test(app.icon);
-  const setWithFallbacks = (primaryUrl) => {
-    imgEl.onerror = () => { imgEl.onerror = () => { imgEl.src = DEFAULT_ICON; }; imgEl.src = viaProxy(primaryUrl); };
-    imgEl.src = primaryUrl;
-  };
-  if (trySearchFirst){
-    const art = await findArtworkBySearch(app.name, app.developer);
-    if (art) return setWithFallbacks(art);
-    if (app.icon) return setWithFallbacks(app.icon);
-    imgEl.src = DEFAULT_ICON; return;
-  }
-  if (app.icon){
-    imgEl.onerror = async () => {
-      const art = await findArtworkBySearch(app.name, app.developer);
-      if (art) return setWithFallbacks(art);
-      imgEl.onerror = () => { imgEl.src = DEFAULT_ICON; };
-      imgEl.src = viaProxy(app.icon);
-    };
-    imgEl.src = app.icon; return;
-  }
-  const art = await findArtworkBySearch(app.name, app.developer);
-  if (art) return setWithFallbacks(art);
-  imgEl.src = DEFAULT_ICON;
 }
 
 /**
@@ -418,8 +474,18 @@ function setupControls(){
    ========================= */
 async function loadBoards(){
   let local = { apps: [], as_of: '' };
-  try{ local = await loadJSON('data/apps.json'); }catch{}
-  state.localApps = local.apps || [];
+  try { local = await loadJSON('data/apps.json'); } catch {}
+
+  // apps.json from automation contains BOTH boards and a flat "apps" list.
+  // Prefer the flat list if present; otherwise flatten from boards.
+  const flatFromBoards = local?.boards
+    ? [
+        ...(local.boards.free?.apps  || []),
+        ...(local.boards.paid?.apps  || []),
+        ...(local.boards.games?.apps || [])
+      ]
+    : [];
+  state.localApps = Array.isArray(local.apps) && local.apps.length ? local.apps : flatFromBoards;
 
   const freeRss = await getCached('rss:free:'+RSS_LIMIT, () => fetchAppleChart({ kind:'topfreeapplications', limit:RSS_LIMIT }));
   state.boards.free.apps = mergeAppsByName(freeRss.apps, state.localApps);
