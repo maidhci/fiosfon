@@ -30,10 +30,8 @@ const DEFAULT_ICON =
    Helpers
    ========================= */
 async function loadJSON(path){
-  const url = new URL(path, document.baseURI);
-  // Add cache-busting query so Pages/CDN can’t serve stale file
-  url.searchParams.set('v', Date.now().toString());
-  const res = await fetch(url.toString(), { cache: 'no-store' });
+  const url = new URL(path, document.baseURI).toString();
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   const text = await res.text();
   try { return JSON.parse(text); } catch(e){ throw new Error(`Invalid JSON in ${url}: ${e.message}`); }
@@ -153,71 +151,34 @@ function closeDrawer(){ const d=document.getElementById('glossary-drawer'); cons
    Risk meter (granular)
    ========================= */
 
-// Category weights (tune as you like)
+// Category weights
 const RISK_WEIGHTS = {
-  // “track” section is generally higher risk than “linked” for the same field
   track: {
-    "Identifiers": 12,
-    "Location": 12,
-    "Contact Info": 10,
-    "Financial Info": 12,
-    "Health & Fitness": 12,
-    "Browsing/Search History": 10,
-    "User Content": 8,
-    "Purchases": 6,
-    "Usage Data": 6,
-    "Diagnostics": 2,
-    "Photos or Videos": 8,
-    "Audio Data": 6,
-    "Messages": 10,
-    "Contacts": 8,
-    "Sensitive Info": 12
+    "Identifiers": 12, "Location": 12, "Contact Info": 10, "Financial Info": 12,
+    "Health & Fitness": 12, "Browsing/Search History": 10, "User Content": 8,
+    "Purchases": 6, "Usage Data": 6, "Diagnostics": 2, "Photos or Videos": 8,
+    "Audio Data": 6, "Messages": 10, "Contacts": 8, "Sensitive Info": 12
   },
   linked: {
-    "Identifiers": 9,
-    "Location": 9,
-    "Contact Info": 8,
-    "Financial Info": 9,
-    "Health & Fitness": 9,
-    "Browsing/Search History": 8,
-    "User Content": 7,
-    "Purchases": 4,
-    "Usage Data": 4,
-    "Diagnostics": 1,
-    "Photos or Videos": 7,
-    "Audio Data": 5,
-    "Messages": 8,
-    "Contacts": 6,
-    "Sensitive Info": 10
+    "Identifiers": 9, "Location": 9, "Contact Info": 8, "Financial Info": 9,
+    "Health & Fitness": 9, "Browsing/Search History": 8, "User Content": 7,
+    "Purchases": 4, "Usage Data": 4, "Diagnostics": 1, "Photos or Videos": 7,
+    "Audio Data": 5, "Messages": 8, "Contacts": 6, "Sensitive Info": 10
   },
   notLinked: {
-    // low impact, but still counts a little
-    "Identifiers": 2,
-    "Location": 2,
-    "Contact Info": 2,
-    "Financial Info": 2,
-    "Health & Fitness": 2,
-    "Browsing/Search History": 2,
-    "User Content": 2,
-    "Purchases": 1,
-    "Usage Data": 1,
-    "Diagnostics": 1,
-    "Photos or Videos": 2,
-    "Audio Data": 1,
-    "Messages": 2,
-    "Contacts": 1,
-    "Sensitive Info": 3
+    "Identifiers": 2, "Location": 2, "Contact Info": 2, "Financial Info": 2,
+    "Health & Fitness": 2, "Browsing/Search History": 2, "User Content": 2,
+    "Purchases": 1, "Usage Data": 1, "Diagnostics": 1, "Photos or Videos": 2,
+    "Audio Data": 1, "Messages": 2, "Contacts": 1, "Sensitive Info": 3
   }
 };
 
-// Soft cap per section to add diminishing returns (prevents everything pegging at 100)
 const SECTION_CAPS = { track: 70, linked: 50, notLinked: 20 };
 
-// Smooth mapping: turn a raw 0–(cap sum) into a nicer 0–100 curve
+// Smooth mapping to 0–100
 function smoothScale(x, max) {
-  // logistic-ish: more resolution in the middle, avoids pinning at extremes
   const t = Math.max(0, Math.min(1, x / max));
-  const k = 5;              // curve steepness
+  const k = 5; // curve steepness
   const y = 1 / (1 + Math.exp(-k * (t - 0.5)));
   return y * 100;
 }
@@ -225,30 +186,26 @@ function smoothScale(x, max) {
 function computePrivacyScore(app){
   const labels = app.privacy_labels || {};
   const sections = {
-    track: labels["Data Used to Track You"] || labels["Data used to track you"] || [],
-    linked: labels["Data Linked to You"] || labels["Data linked to you"] || [],
-    notLinked: labels["Data Not Linked to You"] || labels["Data not linked to you"] || []
+    track: labels["Data Used to Track You"] || [],
+    linked: labels["Data Linked to You"] || [],
+    notLinked: labels["Data Not Linked to You"] || []
   };
 
-  // Sum weighted scores per section with diminishing returns
   const scoreSection = (items, weights, cap) => {
-    // unique normalized set
     const set = new Set(items.map(s => String(s).trim()));
     let sum = 0;
     set.forEach(cat => { sum += (weights[cat] || 0); });
-    // diminishing returns: soft cap via sqrt
     const softened = Math.sqrt(sum) * Math.sqrt(cap);
     return Math.min(softened, cap);
   };
 
-  const sTrack    = scoreSection(sections.track,    RISK_WEIGHTS.track,    SECTION_CAPS.track);
-  const sLinked   = scoreSection(sections.linked,   RISK_WEIGHTS.linked,   SECTION_CAPS.linked);
-  const sNotLinked= scoreSection(sections.notLinked,RISK_WEIGHTS.notLinked,SECTION_CAPS.notLinked);
+  const sTrack     = scoreSection(sections.track,    RISK_WEIGHTS.track,    SECTION_CAPS.track);
+  const sLinked    = scoreSection(sections.linked,   RISK_WEIGHTS.linked,   SECTION_CAPS.linked);
+  const sNotLinked = scoreSection(sections.notLinked,RISK_WEIGHTS.notLinked,SECTION_CAPS.notLinked);
 
-  const raw = sTrack + sLinked + sNotLinked;                 // 0 .. (70+50+20)=140
-  const score = Math.round(smoothScale(raw, 140));           // 0..100 smoothed
+  const raw = sTrack + sLinked + sNotLinked;
+  const score = Math.round(smoothScale(raw, 140));
 
-  // For the label (Low/Medium/High) we’ll use more balanced thresholds
   let band = "Low";
   if (score >= 66) band = "High";
   else if (score >= 33) band = "Medium";
@@ -268,10 +225,41 @@ function renderRiskMeter(containerEl, app){
   `;
 }
 
-/**
- * Render a list of apps.
- * context: 'board' shows chart rank (or position fallback). 'search' only shows rank if known.
- */
+/* =========================
+   Rendering
+   ========================= */
+function renderAsOf(boardKey){
+  const el = document.getElementById(`asof-${boardKey}`);
+  const val = state.boards[boardKey].asOf;
+  if (el) el.textContent = val ? `(updated ${val})` : '';
+}
+
+async function resolveIcon(imgEl, app){
+  const trySearchFirst = app.icon && /mzstatic\.com/.test(app.icon);
+  const setWithFallbacks = (primaryUrl) => {
+    imgEl.onerror = () => { imgEl.onerror = () => { imgEl.src = DEFAULT_ICON; }; imgEl.src = viaProxy(primaryUrl); };
+    imgEl.src = primaryUrl;
+  };
+  if (trySearchFirst){
+    const art = await findArtworkBySearch(app.name, app.developer);
+    if (art) return setWithFallbacks(art);
+    if (app.icon) return setWithFallbacks(app.icon);
+    imgEl.src = DEFAULT_ICON; return;
+  }
+  if (app.icon){
+    imgEl.onerror = async () => {
+      const art = await findArtworkBySearch(app.name, app.developer);
+      if (art) return setWithFallbacks(art);
+      imgEl.onerror = () => { imgEl.src = DEFAULT_ICON; };
+      imgEl.src = viaProxy(app.icon);
+    };
+    imgEl.src = app.icon; return;
+  }
+  const art = await findArtworkBySearch(app.name, app.developer);
+  if (art) return setWithFallbacks(art);
+  imgEl.src = DEFAULT_ICON;
+}
+
 function renderAppsInto(listEl, apps, context='board'){
   if (!listEl) return;
   listEl.innerHTML = '';
@@ -284,17 +272,14 @@ function renderAppsInto(listEl, apps, context='board'){
     iconEl.referrerPolicy = 'no-referrer';
     resolveIcon(iconEl, app);
 
-    // Rank text
     let rankText = '';
     const hasRealRank = Number.isFinite(app.rank);
     rankText = (context === 'board') ? `#${hasRealRank ? app.rank : (idx+1)}` : (hasRealRank ? `#${app.rank}` : '');
     li.querySelector('.rank').textContent = rankText;
 
-    // Name + platform
     li.querySelector('.name').textContent = app.name;
     const plat = li.querySelector('.platform'); if (plat) plat.textContent = 'iOS';
 
-    // "Maker" label + developer
     const devEl = li.querySelector('.developer');
     if (devEl) {
       const maker = document.createElement('span');
@@ -304,13 +289,11 @@ function renderAppsInto(listEl, apps, context='board'){
       devEl.textContent = app.developer || '';
     }
 
-    // Tracking summary
     const tracking = li.querySelector('.tracking');
     tracking.innerHTML = app.tracking_summary
       ? `<ul>${app.tracking_summary.map(t => `<li>${t}</li>`).join('')}</ul>`
       : '<p class="muted">Tracking details coming soon.</p>';
 
-    // Privacy labels -> chips
     const privacy = li.querySelector('.privacy');
     if (app.privacy_labels){
       let html = '';
@@ -324,11 +307,9 @@ function renderAppsInto(listEl, apps, context='board'){
       privacy.innerHTML = '';
     }
 
-    // Risk meter
     const riskEl = li.querySelector('.risk');
     if (riskEl) renderRiskMeter(riskEl, app);
 
-    // Sources
     const sources = li.querySelector('.sources');
     if (app.sources && app.sources.length){
       sources.innerHTML =
@@ -394,125 +375,4 @@ function setupRangeControls(boardKey){
 function setupControls(){
   ['free','paid','games'].forEach(setupRangeControls);
 
-  // Refresh
-  document.getElementById('refresh-data')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    ['free','paid','games'].forEach(k => localStorage.removeItem('ff-cache:rss:'+k+':'+RSS_LIMIT));
-    init(true);
-  });
-
-  // Drawer
-  document.getElementById('drawer-close')?.addEventListener('click', closeDrawer);
-  document.getElementById('drawer-backdrop')?.addEventListener('click', closeDrawer);
-  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
-
-  // Glossary chip clicks
-  document.body.addEventListener('click', async (e) => {
-    const li = e.target.closest('.privacy li');
-    if (!li) return;
-    const term = li.dataset.term || li.textContent.trim();
-    const glossary = await loadGlossary();
-    const entry = glossary.terms?.[term] || glossary.terms?.[term.toLowerCase()];
-    openDrawer(term, entry || 'This category groups similar types of data. Exact collection depends on the features you use and your settings.');
-  });
-
-  // Search
-  const input = document.getElementById('search-input');
-  const resultsEl = document.getElementById('search-results');
-  const noRes = document.getElementById('no-results');
-  let debounceId = null;
-
-  input?.addEventListener('input', () => {
-    const q = input.value.trim().toLowerCase();
-    if (!q){ resultsEl.innerHTML=''; if(noRes) noRes.hidden=true; if(searchAbort) searchAbort.abort(); return; }
-
-    const seen = new Set();
-    const localCombined = ['free','paid','games']
-      .flatMap(k => state.boards[k].apps)
-      .filter(app => {
-        const k = appKey(app);
-        if (seen.has(k)) return false;
-        seen.add(k);
-        return [app.name, app.developer].filter(Boolean).join(' ').toLowerCase().includes(q);
-      });
-
-    resultsEl.innerHTML = '';
-    renderAppsInto(resultsEl, localCombined, 'search');
-    if (noRes) noRes.hidden = localCombined.length > 0;
-
-    clearTimeout(debounceId);
-    debounceId = setTimeout(async () => {
-      try{
-        const live = await liveSearchAllApps(q);
-        const mapLocal = new Map((state.localApps||[]).map(a => [normaliseName(a.name), a]));
-        const enriched = live.map(a => {
-          const hit = mapLocal.get(normaliseName(a.name));
-          return hit ? { ...a, tracking_summary: hit.tracking_summary, privacy_labels: hit.privacy_labels } : a;
-        });
-
-        const have = new Set(localCombined.map(appKey));
-        const uniqueLive = enriched.filter(a => !have.has(appKey(a)));
-
-        const merged = localCombined.concat(uniqueLive);
-        resultsEl.innerHTML = '';
-        if (merged.length){
-          renderAppsInto(resultsEl, merged, 'search');
-          if (noRes) noRes.hidden = true;
-        } else {
-          if (noRes) noRes.hidden = false;
-        }
-      }catch(err){
-        if (err?.name === 'AbortError') return;
-        console.warn('Search failed:', err.message);
-      }
-    }, 300);
-  });
-}
-
-/* =========================
-   App lifecycle
-   ========================= */
-async function loadBoards(){
-  let local = { apps: [], as_of: '' };
-  try { local = await loadJSON('data/apps.json'); } catch {}
-
-  // apps.json from automation contains BOTH boards and a flat "apps" list.
-  // Prefer the flat list if present; otherwise flatten from boards.
-  const flatFromBoards = local?.boards
-    ? [
-        ...(local.boards.free?.apps  || []),
-        ...(local.boards.paid?.apps  || []),
-        ...(local.boards.games?.apps || [])
-      ]
-    : [];
-  state.localApps = Array.isArray(local.apps) && local.apps.length ? local.apps : flatFromBoards;
-
-  const freeRss = await getCached('rss:free:'+RSS_LIMIT, () => fetchAppleChart({ kind:'topfreeapplications', limit:RSS_LIMIT }));
-  state.boards.free.apps = mergeAppsByName(freeRss.apps, state.localApps);
-  state.boards.free.asOf = freeRss.as_of;
-
-  const paidRss = await getCached('rss:paid:'+RSS_LIMIT, () => fetchAppleChart({ kind:'toppaidapplications', limit:RSS_LIMIT }));
-  state.boards.paid.apps = mergeAppsByName(paidRss.apps, state.localApps);
-  state.boards.paid.asOf = paidRss.as_of;
-
-  const gamesRss = await getCached('rss:games:'+RSS_LIMIT, () => fetchAppleChart({ kind:'topfreeapplications', limit:RSS_LIMIT, genre:GENRE_GAMES }));
-  state.boards.games.apps = mergeAppsByName(gamesRss.apps, state.localApps);
-  state.boards.games.asOf = gamesRss.as_of;
-}
-
-async function init(forceRefresh=false){
-  try{ await loadBoards(); }catch(err){ alert('Failed to load Apple charts: '+err.message); return; }
-
-  try{ const rights = await loadJSON('data/rights_ie.json'); state.rights = rights.items || []; }
-  catch(err){ console.warn('Rights failed to load:', err.message); }
-
-  renderAllBoards();
-  renderRights();
-
-  if (forceRefresh) localStorage.setItem('ff-last-refresh', String(Date.now()));
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-  setupControls();
-  init();
-});
+  document.getElementById('refresh-data')?.addEventListener('click', (e
