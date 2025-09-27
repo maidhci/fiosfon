@@ -1,0 +1,27 @@
+{
+  "as_of": "2025-09-27T06:53:52.925Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "SmallStep Dev Team",
+      "Identifiers",
+      "Location",
+      "Usage Data",
+      "Advertising Data",
+      "Crash Data"
+    ],
+    "Data Linked to You": [],
+    "Data Not Linked to You": [
+      "Location",
+      "Identifiers",
+      "Usage Data",
+      "Advertising Data",
+      "Crash Data"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id6670789598"
+    }
+  ]
+}

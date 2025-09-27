@@ -1,0 +1,19 @@
+{
+  "as_of": "2025-09-27T06:52:59.722Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "Minh Tam Kieu Thi",
+      "Identifiers"
+    ],
+    "Data Linked to You": [
+      "Identifiers"
+    ],
+    "Data Not Linked to You": []
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id6446782218"
+    }
+  ]
+}

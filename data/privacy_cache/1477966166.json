@@ -1,0 +1,29 @@
+{
+  "as_of": "2025-09-27T06:45:57.909Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "Marmalade Game Studio",
+      "Identifiers",
+      "Purchases",
+      "Location",
+      "Usage Data",
+      "Diagnostics",
+      "Crash Data"
+    ],
+    "Data Linked to You": [],
+    "Data Not Linked to You": [
+      "Purchases",
+      "Location",
+      "Identifiers",
+      "Usage Data",
+      "Diagnostics",
+      "Crash Data"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id1477966166"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "as_of": "2025-09-27T06:51:46.124Z",
+  "privacy_labels": {
+    "Data Used to Track You": [],
+    "Data Linked to You": [
+      "Contact Info",
+      "User Content",
+      "Identifiers",
+      "Name",
+      "Purchases"
+    ],
+    "Data Not Linked to You": [
+      "Visible Body Apps",
+      "Contact Info",
+      "User Content",
+      "Identifiers",
+      "Name",
+      "Purchases",
+      "Usage Data"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id1117998129"
+    }
+  ]
+}

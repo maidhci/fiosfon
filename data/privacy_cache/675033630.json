@@ -1,0 +1,43 @@
+{
+  "as_of": "2025-09-27T06:44:54.160Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "BOLT TECHNOLOGY OU",
+      "Identifiers",
+      "Browsing/Search History",
+      "Usage Data",
+      "Advertising Data",
+      "Location",
+      "Physical Address",
+      "Payment Info",
+      "Contact Info",
+      "Name",
+      "Customer Support",
+      "Crash Data",
+      "Diagnostics"
+    ],
+    "Data Linked to You": [
+      "Browsing/Search History",
+      "Identifiers",
+      "Usage Data",
+      "Advertising Data",
+      "Location",
+      "Physical Address",
+      "Payment Info",
+      "Contact Info",
+      "Name",
+      "Customer Support"
+    ],
+    "Data Not Linked to You": [
+      "Crash Data",
+      "Usage Data",
+      "Diagnostics"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id675033630"
+    }
+  ]
+}
