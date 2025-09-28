@@ -1,0 +1,32 @@
+{
+  "as_of": "2025-09-28T06:47:24.618Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "Identifiers",
+      "Customer Support",
+      "Usage Data",
+      "Crash Data",
+      "Diagnostics",
+      "Contact Info",
+      "User Content",
+      "Audio Data"
+    ],
+    "Data Linked to You": [
+      "Identifiers",
+      "Customer Support",
+      "Usage Data",
+      "Crash Data",
+      "Diagnostics",
+      "Contact Info",
+      "User Content",
+      "Audio Data"
+    ],
+    "Data Not Linked to You": []
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id1500855883"
+    }
+  ]
+}

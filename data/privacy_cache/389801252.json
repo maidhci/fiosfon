@@ -1,0 +1,45 @@
+{
+  "as_of": "2025-09-28T06:47:38.587Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "Physical Address",
+      "Contact Info",
+      "Name",
+      "Identifiers",
+      "Other Data Types"
+    ],
+    "Data Linked to You": [
+      "Purchases",
+      "Financial Info",
+      "Location",
+      "Physical Address",
+      "Contact Info",
+      "Name",
+      "Contacts",
+      "User Content",
+      "Gameplay Content",
+      "Browsing/Search History",
+      "Identifiers",
+      "Usage Data",
+      "Advertising Data",
+      "Crash Data",
+      "Diagnostics",
+      "Other Data Types",
+      "Health & Fitness",
+      "Fitness",
+      "Payment Info",
+      "Audio Data",
+      "Customer Support",
+      "Sensitive Info",
+      "Credit Info",
+      "Emails or Text Messages"
+    ],
+    "Data Not Linked to You": []
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id389801252"
+    }
+  ]
+}
