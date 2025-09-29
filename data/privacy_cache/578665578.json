@@ -1,0 +1,22 @@
+{
+  "as_of": "2025-09-29T06:57:59.528Z",
+  "privacy_labels": {
+    "Data Used to Track You": [],
+    "Data Linked to You": [
+      "Contact Info",
+      "Identifiers"
+    ],
+    "Data Not Linked to You": [
+      "Threema GmbH",
+      "Contact Info",
+      "Identifiers",
+      "Crash Data"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id578665578"
+    }
+  ]
+}

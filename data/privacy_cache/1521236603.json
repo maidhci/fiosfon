@@ -1,0 +1,23 @@
+{
+  "as_of": "2025-09-29T06:58:20.810Z",
+  "privacy_labels": {
+    "Data Used to Track You": [
+      "Moon Active",
+      "Advertising Data",
+      "Usage Data",
+      "Crash Data"
+    ],
+    "Data Linked to You": [],
+    "Data Not Linked to You": [
+      "Usage Data",
+      "Advertising Data",
+      "Crash Data"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id1521236603"
+    }
+  ]
+}
