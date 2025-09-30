@@ -1,9 +1,12 @@
-name: Update apps & privacy data
+name: "Update apps & privacy data"
 
 on:
-  workflow_dispatch:   # allows manual runs
+  workflow_dispatch: # allow manual runs
   schedule:
-    - cron: "0 3 * * *"   # run daily at 03:00 UTC
+    - cron: "0 3 * * *" # daily at 03:00 UTC
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -22,7 +25,9 @@ jobs:
         run: npm install
 
       - name: Run updater
-        run: USER_AGENT="FiosFonBot/1.0 (contact: maidhci@gmail.com)" npm run update:apps
+        env:
+          USER_AGENT: "FiosFonBot/1.0 (contact: maidhci@gmail.com)"
+        run: npm run update:apps
 
       - name: Commit and push if changed
         run: |
