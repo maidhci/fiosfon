@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FiosFón — What your iOS apps collect (Ireland)</title>
+  <link rel="stylesheet" href="styles.css" />
+  <meta name="description" content="See what popular iOS apps in Ireland collect about you. Live Top Free, Top Paid, and Top Games (10/50) from the Apple App Store, plus your rights under Irish law (GDPR & DPA 2018).">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <h1>FiosFón <span class="badge">BETA</span></h1>
+      <nav>
+        <a href="#boards">Top Charts</a>
+        <a href="#search">Search</a>
+        <a href="#rights">Your Rights</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="intro" class="intro">
+      <h2>What are your iOS apps collecting?</h2>
+      <p>We summarise public disclosures (e.g. App Store privacy labels) so you can quickly see the kinds of data your apps may collect. These charts update from Apple’s feeds for Ireland.</p>
+      <p class="note">Information here is for guidance only. Always check the developer’s privacy policy.</p>
+    </section>
+
+    <!-- Three-column boards -->
+    <section id="boards" class="boards">
+      <!-- Free -->
+      <article class="panel board">
+        <div class="panel-head">
+          <h3>Top Free (iOS · IE)</h3>
+          <span class="asof" id="asof-free">(loading…)</span>
+        </div>
+        <div class="controls">
+          <div class="toolbar-card">
+            <div class="range-group" id="range-free" role="tablist" aria-label="Top Free ranges">
+              <button type="button" class="range-btn" data-range="0-10" aria-selected="true">1–10</button>
+              <button type="button" class="range-btn" data-range="10-20">11–20</button>
+              <button type="button" class="range-btn" data-range="20-30">21–30</button>
+              <button type="button" class="range-btn" data-range="30-40">31–40</button>
+              <button type="button" class="range-btn" data-range="40-50">41–50</button>
+            </div>
+          </div>
+        </div>
+        <ul id="list-free" class="apps-grid" aria-live="polite"></ul>
+      </article>
+
+      <!-- Paid -->
+      <article class="panel board">
+        <div class="panel-head">
+          <h3>Top Paid (iOS · IE)</h3>
+          <span class="asof" id="asof-paid">(loading…)</span>
+        </div>
+        <div class="controls">
+          <div class="toolbar-card">
+            <div class="range-group" id="range-paid" role="tablist" aria-label="Top Paid ranges">
+              <button type="button" class="range-btn" data-range="0-10" aria-selected="true">1–10</button>
+              <button type="button" class="range-btn" data-range="10-20">11–20</button>
+              <button type="button" class="range-btn" data-range="20-30">21–30</button>
+              <button type="button" class="range-btn" data-range="30-40">31–40</button>
+              <button type="button" class="range-btn" data-range="40-50">41–50</button>
+            </div>
+          </div>
+        </div>
+        <ul id="list-paid" class="apps-grid" aria-live="polite"></ul>
+      </article>
+
+      <!-- Games -->
+      <article class="panel board">
+        <div class="panel-head">
+          <h3>Top Games (iOS · IE)</h3>
+          <span class="asof" id="asof-games">(loading…)</span>
+        </div>
+        <div class="controls">
+          <div class="toolbar-card">
+            <div class="range-group" id="range-games" role="tablist" aria-label="Top Games ranges">
+              <button type="button" class="range-btn" data-range="0-10" aria-selected="true">1–10</button>
+              <button type="button" class="range-btn" data-range="10-20">11–20</button>
+              <button type="button" class="range-btn" data-range="20-30">21–30</button>
+              <button type="button" class="range-btn" data-range="30-40">31–40</button>
+              <button type="button" class="range-btn" data-range="40-50">41–50</button>
+            </div>
+          </div>
+        </div>
+        <ul id="list-games" class="apps-grid" aria-live="polite"></ul>
+      </article>
+    </section>
+
+    <!-- Search -->
+    <section id="search" class="panel">
+      <div class="panel-head">
+        <h3>Search any iOS app</h3>
+      </div>
+      <div class="searchbar">
+        <input id="search-input" type="search" placeholder="Search iOS apps (e.g. WhatsApp, TikTok, ChatGPT)…" autocomplete="off" />
+      </div>
+      <ul id="search-results" class="apps-grid" aria-live="polite"></ul>
+      <p id="no-results" class="muted" hidden>No matching apps yet. Try a different name.</p>
+    </section>
+
+    <!-- Rights -->
+    <section id="rights" class="panel">
+      <div class="panel-head">
+        <h3>Your rights in Ireland (GDPR & DPA 2018)</h3>
+      </div>
+      <div id="rights-cards" class="rights-grid" aria-live="polite"></div>
+      <p class="muted small">Source: Data Protection Commission (Ireland), GDPR.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Made in Ireland. Not legal advice. <a href="#" id="refresh-data">Refresh data</a></p>
+    </div>
+  </footer>
+
+  <!-- App card template -->
+  <template id="app-card-tpl">
+    <li class="app-card">
+      <div class="card-top">
+        <div class="icon-stack">
+          <img class="app-icon" alt="" loading="lazy" />
+          <div class="rank-badge"><span class="rank"></span></div>
+        </div>
+        <div class="meta">
+          <div class="title-row">
+            <h4 class="name"></h4>
+            <span class="platform chip"></span>
+          </div>
+          <p class="developer"></p>
+        </div>
+      </div>
+
+      <details>
+        <summary>See data collected / tracking info</summary>
+        <div class="tracking"></div>
+        <div class="privacy"></div>
+        <div class="risk"></div>
+        <div class="sources"></div>
+      </details>
+    </li>
+  </template>
+
+  <!-- Rights card template -->
+  <template id="right-card-tpl">
+    <article class="right-card">
+      <h4 class="right-title"></h4>
+      <p class="right-desc"></p>
+      <p class="right-learn small"></p>
+    </article>
+  </template>
+
+  <!-- Glossary drawer -->
+  <aside id="glossary-drawer" aria-hidden="true">
+    <div class="drawer-inner" role="dialog" aria-modal="true" aria-labelledby="glossary-title">
+      <button class="drawer-close" id="drawer-close" aria-label="Close">×</button>
+      <h3 id="glossary-title">Privacy term</h3>
+      <p id="glossary-body" class="drawer-body">Loading…</p>
+      <p class="drawer-note">This is general guidance. Always review the developer’s privacy policy for specifics.</p>
+    </div>
+  </aside>
+  <div id="drawer-backdrop" hidden></div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
