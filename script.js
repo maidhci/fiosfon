@@ -1,7 +1,7 @@
 'use strict';
 
 /* =========================
-   App state (three boards) TESTING
+   App state (three boards)
    ========================= */
 const state = {
   boards: {
@@ -58,7 +58,9 @@ function mergeAppsByName(rssApps, localApps){
       developer: r.developer, icon: r.icon || hit.icon,
       sources: r.sources?.length ? r.sources : hit.sources,
       tracking_summary: hit.tracking_summary,
-      privacy_labels: hit.privacy_labels
+      privacy_labels: hit.privacy_labels,
+      privacy_details: hit.privacy_details,
+      privacy_policy_url: hit.privacy_policy_url
     } : r;
   });
 }
@@ -137,21 +139,26 @@ function viaProxy(u){
    Glossary drawer
    ========================= */
 let GLOSSARY = null;
-async function loadGlossary(){ if (GLOSSARY) return GLOSSARY; try{ GLOSSARY = await loadJSON('data/glossary.json'); }catch{ GLOSSARY = { terms:{} }; } return GLOSSARY; }
-function openDrawer(title, body){
+async function loadGlossary(){
+  if (GLOSSARY) return GLOSSARY;
+  try{ GLOSSARY = await loadJSON('data/glossary.json'); }
+  catch{ GLOSSARY = { terms:{} }; }
+  return GLOSSARY;
+}
+function openDrawerHTML(title, html){
   const d = document.getElementById('glossary-drawer');
   const b = document.getElementById('drawer-backdrop');
   document.getElementById('glossary-title').textContent = title || 'Privacy term';
-  document.getElementById('glossary-body').textContent = body || 'No description available.';
+  document.getElementById('glossary-body').innerHTML = html || '<p>No description available.</p>';
   d.classList.add('open'); d.setAttribute('aria-hidden','false'); b.hidden = false;
 }
 function closeDrawer(){ const d=document.getElementById('glossary-drawer'); const b=document.getElementById('drawer-backdrop'); d.classList.remove('open'); d.setAttribute('aria-hidden','true'); b.hidden = true; }
 
 /* =========================
-   Risk meter (granular)
+   Risk meter (granular + purpose aware)
    ========================= */
 
-// Category weights
+// Category weights (base)
 const RISK_WEIGHTS = {
   track: {
     "Identifiers": 12, "Location": 12, "Contact Info": 10, "Financial Info": 12,
@@ -173,9 +180,21 @@ const RISK_WEIGHTS = {
   }
 };
 
+// Purpose bonuses (added per category if present in privacy_details)
+const PURPOSE_BONUS = {
+  "Advertising": 6,
+  "Developer's Advertising": 4,
+  "Personalization": 4,
+  "Product Personalization": 3,
+  "Analytics": 2,
+  "Fraud Prevention": 3,
+  "App Functionality": 0,
+  "Other Purposes": 1
+};
+
 const SECTION_CAPS = { track: 70, linked: 50, notLinked: 20 };
 
-// Smooth mapping to 0–100
+// Smooth mapping to 0–100 so most apps aren’t pegged at the top
 function smoothScale(x, max) {
   const t = Math.max(0, Math.min(1, x / max));
   const k = 5; // curve steepness
@@ -185,23 +204,40 @@ function smoothScale(x, max) {
 
 function computePrivacyScore(app){
   const labels = app.privacy_labels || {};
+  const details = app.privacy_details || {};
   const sections = {
     track: labels["Data Used to Track You"] || [],
     linked: labels["Data Linked to You"] || [],
     notLinked: labels["Data Not Linked to You"] || []
   };
 
-  const scoreSection = (items, weights, cap) => {
+  const scoreSection = (sectionName, items, weights, cap) => {
     const set = new Set(items.map(s => String(s).trim()));
     let sum = 0;
-    set.forEach(cat => { sum += (weights[cat] || 0); });
+    set.forEach(cat => {
+      let base = weights[cat] || 0;
+
+      // Purpose-aware boost if we have details for this category
+      const det = details[cat];
+      if (det && Array.isArray(det.purposes)) {
+        for (const p of det.purposes) {
+          base += (PURPOSE_BONUS[p] || 0);
+        }
+        // If the section is not "track" but detail says it's tracked, nudge up slightly
+        if (sectionName !== 'track' && det.tracked) base += 3;
+      }
+
+      sum += base;
+    });
+
+    // Soft diminish returns and cap
     const softened = Math.sqrt(sum) * Math.sqrt(cap);
     return Math.min(softened, cap);
   };
 
-  const sTrack     = scoreSection(sections.track,    RISK_WEIGHTS.track,    SECTION_CAPS.track);
-  const sLinked    = scoreSection(sections.linked,   RISK_WEIGHTS.linked,   SECTION_CAPS.linked);
-  const sNotLinked = scoreSection(sections.notLinked,RISK_WEIGHTS.notLinked,SECTION_CAPS.notLinked);
+  const sTrack     = scoreSection('track',     sections.track,     RISK_WEIGHTS.track,     SECTION_CAPS.track);
+  const sLinked    = scoreSection('linked',    sections.linked,    RISK_WEIGHTS.linked,    SECTION_CAPS.linked);
+  const sNotLinked = scoreSection('notLinked', sections.notLinked, RISK_WEIGHTS.notLinked, SECTION_CAPS.notLinked);
 
   const raw = sTrack + sLinked + sNotLinked;
   const score = Math.round(smoothScale(raw, 140));
@@ -260,27 +296,36 @@ async function resolveIcon(imgEl, app){
   imgEl.src = DEFAULT_ICON;
 }
 
+/**
+ * Render a list of apps.
+ * context: 'board' shows chart rank (or position fallback). 'search' only shows rank if known.
+ */
 function renderAppsInto(listEl, apps, context='board'){
   if (!listEl) return;
   listEl.innerHTML = '';
   const tpl = document.getElementById('app-card-tpl');
   apps.forEach((app, idx) => {
-    const li = tpl.content.cloneNode(true);
+    const frag = tpl.content.cloneNode(true);
+    const root = frag.querySelector('.app-card') || frag.firstElementChild;
+    if (root) root.dataset.appKey = appKey(app);
 
-    const iconEl = li.querySelector('.app-icon');
+    const iconEl = frag.querySelector('.app-icon');
     iconEl.alt = `${app.name} icon`;
     iconEl.referrerPolicy = 'no-referrer';
     resolveIcon(iconEl, app);
 
+    // Rank text
     let rankText = '';
     const hasRealRank = Number.isFinite(app.rank);
     rankText = (context === 'board') ? `#${hasRealRank ? app.rank : (idx+1)}` : (hasRealRank ? `#${app.rank}` : '');
-    li.querySelector('.rank').textContent = rankText;
+    frag.querySelector('.rank').textContent = rankText;
 
-    li.querySelector('.name').textContent = app.name;
-    const plat = li.querySelector('.platform'); if (plat) plat.textContent = 'iOS';
+    // Name + platform
+    frag.querySelector('.name').textContent = app.name;
+    const plat = frag.querySelector('.platform'); if (plat) plat.textContent = 'iOS';
 
-    const devEl = li.querySelector('.developer');
+    // "Maker" label + developer
+    const devEl = frag.querySelector('.developer');
     if (devEl) {
       const maker = document.createElement('span');
       maker.className = 'maker-label';
@@ -289,12 +334,14 @@ function renderAppsInto(listEl, apps, context='board'){
       devEl.textContent = app.developer || '';
     }
 
-    const tracking = li.querySelector('.tracking');
+    // Tracking summary
+    const tracking = frag.querySelector('.tracking');
     tracking.innerHTML = app.tracking_summary
       ? `<ul>${app.tracking_summary.map(t => `<li>${t}</li>`).join('')}</ul>`
       : '<p class="muted">Tracking details coming soon.</p>';
 
-    const privacy = li.querySelector('.privacy');
+    // Privacy labels -> chips
+    const privacy = frag.querySelector('.privacy');
     if (app.privacy_labels){
       let html = '';
       for (const [section, items] of Object.entries(app.privacy_labels)){
@@ -307,17 +354,19 @@ function renderAppsInto(listEl, apps, context='board'){
       privacy.innerHTML = '';
     }
 
-    const riskEl = li.querySelector('.risk');
+    // Risk meter
+    const riskEl = frag.querySelector('.risk');
     if (riskEl) renderRiskMeter(riskEl, app);
 
-    const sources = li.querySelector('.sources');
+    // Sources
+    const sources = frag.querySelector('.sources');
     if (app.sources && app.sources.length){
       sources.innerHTML =
         `<strong>Sources:</strong> ` +
         app.sources.map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Link'}</a>`).join(' ');
     }
 
-    listEl.appendChild(li);
+    listEl.appendChild(frag);
   });
 }
 
@@ -388,14 +437,53 @@ function setupControls(){
   document.getElementById('drawer-backdrop')?.addEventListener('click', closeDrawer);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
-  // Glossary chip clicks
+  // Glossary chip clicks -> open drawer with definition + app-specific details (if available)
   document.body.addEventListener('click', async (e) => {
-    const li = e.target.closest('.privacy li');
-    if (!li) return;
-    const term = li.dataset.term || li.textContent.trim();
+    const liChip = e.target.closest('.privacy li');
+    if (!liChip) return;
+
+    const card = e.target.closest('[data-app-key]');
+    const key = card?.dataset.appKey;
+    const app = key
+      ? (['free','paid','games'].flatMap(k => state.boards[k].apps).find(a => appKey(a) === key))
+      : null;
+
+    const term = liChip.dataset.term || liChip.textContent.trim();
     const glossary = await loadGlossary();
-    const entry = glossary.terms?.[term] || glossary.terms?.[term.toLowerCase()];
-    openDrawer(term, entry || 'This category groups similar types of data. Exact collection depends on the features you use and your settings.');
+    const def = glossary.terms?.[term] || glossary.terms?.[term.toLowerCase()] ||
+                'This category groups similar types of data. Exact collection depends on the features you use and your settings.';
+
+    let html = `<p class="muted">${def}</p>`;
+
+    const details = app?.privacy_details?.[term];
+    if (details) {
+      const statusBadges = [
+        details.tracked ? '<span class="badge warn">Used to Track You</span>' : '',
+        details.linked ? '<span class="badge info">Linked to You</span>' : '',
+        details.notLinked ? '<span class="badge">Not Linked</span>' : ''
+      ].filter(Boolean).join(' ');
+
+      const sub = (details.subtypes || []).map(s => `<span class="chip">${s}</span>`).join(' ') || '<em>No specific sub-items disclosed.</em>';
+      const purp = (details.purposes || []).map(p => `<span class="chip soft">${p}</span>`).join(' ') || '<em>No purposes listed.</em>';
+
+      html += `
+        <hr/>
+        <h4>This app’s disclosure for “${term}”</h4>
+        <div class="drawer-block">
+          <div class="drawer-row"><strong>Status:</strong> ${statusBadges || '<span class="badge">Unspecified</span>'}</div>
+          <div class="drawer-row"><strong>Sub-items:</strong> ${sub}</div>
+          <div class="drawer-row"><strong>Purposes:</strong> ${purp}</div>
+        </div>
+      `;
+
+      const srcLinks = (app.sources || []).map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Source'}</a>`).join(' · ');
+      const policy = app.privacy_policy_url ? ` · <a href="${app.privacy_policy_url}" target="_blank" rel="noopener">Privacy Policy</a>` : '';
+      html += `<p class="muted small">Source: ${srcLinks || 'App Store listing'}${policy}</p>`;
+    } else {
+      html += `<p class="muted small">No app-specific detail yet for this category.</p>`;
+    }
+
+    openDrawerHTML(term, html);
   });
 
   // Search (local first, then live iTunes Search)
@@ -434,12 +522,13 @@ function setupControls(){
         const mapLocal = new Map((state.localApps||[]).map(a => [normaliseName(a.name), a]));
         const enriched = live.map(a => {
           const hit = mapLocal.get(normaliseName(a.name));
-          return hit ? { ...a, tracking_summary: hit.tracking_summary, privacy_labels: hit.privacy_labels } : a;
+          return hit ? { ...a, tracking_summary: hit.tracking_summary, privacy_labels: hit.privacy_labels, privacy_details: hit.privacy_details } : a;
         });
+
         const have = new Set(localCombined.map(appKey));
         const uniqueLive = enriched.filter(a => !have.has(appKey(a)));
-        const merged = localCombined.concat(uniqueLive);
 
+        const merged = localCombined.concat(uniqueLive);
         resultsEl.innerHTML = '';
         if (merged.length){
           renderAppsInto(resultsEl, merged, 'search');
