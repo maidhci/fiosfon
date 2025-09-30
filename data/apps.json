@@ -1,5 +1,5 @@
 {
-  "as_of": "17 Sep 2025",
+  "as_of": "2025-09-30",
   "apps": [
     {
       "rank": 1,
@@ -21,7 +21,10 @@
         ]
       },
       "sources": [
-        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/remini-ai-photo-enhancer/id1470373330" }
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/remini-ai-photo-enhancer/id1470373330"
+        }
       ]
     },
     {
@@ -44,7 +47,10 @@
         ]
       },
       "sources": [
-        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/vinted/id632064380" }
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/vinted/id632064380"
+        }
       ]
     },
     {
@@ -73,7 +79,10 @@
         ]
       },
       "sources": [
-        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/google-gemini/id284815942" }
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/google-gemini/id284815942"
+        }
       ]
     },
     {
@@ -93,7 +102,10 @@
         ]
       },
       "sources": [
-        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/chatgpt/id6448311069" }
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/chatgpt/id6448311069"
+        }
       ]
     },
     {
@@ -115,7 +127,10 @@
         ]
       },
       "sources": [
-        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/microsoft-outlook/id951937596" }
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/microsoft-outlook/id951937596"
+        }
       ]
     },
     {
@@ -135,7 +150,10 @@
         ]
       },
       "sources": [
-        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/microsoft-authenticator/id983156458" }
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/microsoft-authenticator/id983156458"
+        }
       ]
     },
     {
@@ -157,7 +175,10 @@
         ]
       },
       "sources": [
-        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/microsoft-teams/id1113153706" }
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/microsoft-teams/id1113153706"
+        }
       ]
     },
     {
@@ -178,7 +199,10 @@
         ]
       },
       "sources": [
-        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/moodle/id633359593" }
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/moodle/id633359593"
+        }
       ]
     },
     {
@@ -200,7 +224,10 @@
         ]
       },
       "sources": [
-        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/mcdonalds/id922103212" }
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/mcdonalds/id922103212"
+        }
       ]
     },
     {
@@ -221,7 +248,10 @@
         ]
       },
       "sources": [
-        { "label": "App Store (IE)", "url": "https://apps.apple.com/ie/app/temu-shop-like-a-billionaire/id1641486559" }
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/temu-shop-like-a-billionaire/id1641486559"
+        }
       ]
     }
   ]
