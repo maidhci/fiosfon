@@ -1,0 +1,26 @@
+{
+  "as_of": "2025-09-30T06:56:06.942Z",
+  "privacy_labels": {
+    "Data Used to Track You": [],
+    "Data Linked to You": [
+      "Contact Info",
+      "Identifiers",
+      "Gameplay Content",
+      "Customer Support"
+    ],
+    "Data Not Linked to You": [
+      "MoonBear LTD",
+      "Contact Info",
+      "Identifiers",
+      "Gameplay Content",
+      "Customer Support",
+      "Location"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id1293681293"
+    }
+  ]
+}

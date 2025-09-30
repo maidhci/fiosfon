@@ -1,0 +1,17 @@
+{
+  "as_of": "2025-09-30T06:54:00.693Z",
+  "privacy_labels": {
+    "Data Used to Track You": [],
+    "Data Linked to You": [],
+    "Data Not Linked to You": [
+      "Universalis Publishing",
+      "Diagnostics"
+    ]
+  },
+  "sources": [
+    {
+      "label": "App Store (IE)",
+      "url": "https://apps.apple.com/ie/app/id284942719"
+    }
+  ]
+}
