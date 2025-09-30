@@ -549,7 +549,7 @@ function setupControls(){
    ========================= */
 
 // Toggle: render from local apps.json only (set to false to use Apple RSS)
-const USE_LOCAL_ONLY = true;
+const USE_LOCAL_ONLY = false;
 
 async function loadBoards(){
   // Load local dataset
