@@ -1,13 +1,9 @@
 import puppeteer from "puppeteer";
 
 const WAIT_MS = 18000;
-const UA = process.env.USER_AGENT || "FiosFonBot/1.0 (+https://github.com/)";
+const UA = process.env.USER_AGENT || "FiosFonBot/1.0 (+https://github.com/maidhci/fiosfon)";
 
-function normText(t = "") {
-  return t.replace(/\s+/g, " ").trim();
-}
-
-// Maps verbose subtypes to our canonical bucket names used in your UI
+// Map verbose subtypes to the canonical buckets we display in the UI
 const CANON = {
   "Email Address": "Email Address",
   "Phone Number": "Phone Number",
@@ -16,41 +12,52 @@ const CANON = {
   "User ID": "User ID",
   "Precise Location": "Location",
   "Coarse Location": "Location",
+  "Approximate Location": "Location",
+  "Location": "Location",
   "Contact Info": "Contact Info",
   "User Content": "User Content",
   "Photos or Videos": "Photos or Videos",
+  "Photos": "Photos or Videos",
+  "Videos": "Photos or Videos",
   "Audio Data": "Audio Data",
+  "Voice Data": "Audio Data",
   "Contacts": "Contacts",
   "Health & Fitness": "Health & Fitness",
+  "Health": "Health & Fitness",
+  "Fitness": "Health & Fitness",
   "Financial Info": "Financial Info",
+  "Payment Info": "Financial Info",
   "Purchases": "Purchases",
   "Browsing History": "Browsing/Search History",
   "Search History": "Browsing/Search History",
   "Identifiers": "Identifiers",
   "Usage Data": "Usage Data",
   "Diagnostics": "Diagnostics",
+  "Crash Data": "Diagnostics",
+  "Performance Data": "Diagnostics",
   "Sensitive Info": "Sensitive Info",
   "Messages": "Messages",
   "Other Data": "Other Data Types",
   "Other Data Types": "Other Data Types",
 };
 
-function canonBucket(label) {
-  const k = CANON[label] || CANON[label.replace(/s$/,"")] || label;
-  return k;
+function canonBucket(label = "") {
+  const t = String(label).trim();
+  return CANON[t] || CANON[t.replace(/s$/, "")] || t;
 }
 
 /**
- * Scrape the App Store page:
- * - privacy_labels (3 buckets)
- * - privacy_details: per bucket (e.g., "Contact Info") -> { subtypes, flags, purposes }
- * - privacy_policy_url
+ * Scrape an App Store product page for:
+ *  - privacy_labels (three buckets)
+ *  - privacy_details (per category: subtypes, purposes, tracked/linked flags)
+ *  - privacy_policy_url
+ *  - developer_website_url
  */
 export async function scrapePrivacyForApp(appId) {
-  const url = `https://apps.apple.com/ie/app/id${appId}`;
+  const url = `https://apps.apple.com/ie/app/id${encodeURIComponent(appId)}`;
   const browser = await puppeteer.launch({
     headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: ["--no-sandbox", "--disable-setuid-sandbox"]
   });
 
   try {
@@ -58,60 +65,64 @@ export async function scrapePrivacyForApp(appId) {
     await page.setUserAgent(UA);
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: WAIT_MS });
 
-    // Scroll a bit to ensure privacy section is in DOM
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.55));
+    // Nudge scroll so deferred sections render
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.6));
     await page.waitForTimeout(1200);
 
-    // Try to capture privacy policy URL from the "Developer Website / Privacy Policy" area
-    const privacyPolicyUrl = await page.evaluate(() => {
-      const anchors = Array.from(document.querySelectorAll('a[href]'));
-      const hit = anchors.find(a => /privacy/i.test(a.textContent || '') && /^https?:/i.test(a.href));
-      return hit ? hit.href : null;
+    // Extract developer website & privacy policy URLs
+    const linkInfo = await page.evaluate(() => {
+      const anchors = Array.from(document.querySelectorAll("a[href]"));
+      const pick = (pred) => {
+        const hit = anchors.find(pred);
+        return hit ? hit.href : null;
+      };
+      const privacyPolicyUrl = pick(a => /privacy/i.test(a.textContent || "") && /^https?:/i.test(a.href));
+      const developerWebsiteUrl = pick(a => /developer website/i.test(a.textContent || "") && /^https?:/i.test(a.href));
+      return { privacyPolicyUrl, developerWebsiteUrl };
     });
 
+    // Pull both the simple chips & the detailed table-ish content
     const raw = await page.evaluate(() => {
-      // Grab the whole App Privacy block text and structured nodes if present
-      function grabBuckets() {
-        // high-level “chips” as we already did
-        const titles = ["Data Used to Track You", "Data Linked to You", "Data Not Linked to You"];
-        const res = Object.fromEntries(titles.map(t => [t, []]));
-
-        function findSection(label) {
-          const all = Array.from(document.querySelectorAll("section,div,article"));
-          return all.find(el => (el.textContent || "").trim().toLowerCase().includes(label.toLowerCase()));
-        }
-
-        function harvestSimple(section) {
-          if (!section) return [];
-          const possible = Array.from(section.querySelectorAll("li,span,div"));
-          return possible
-            .map(x => (x.textContent || "").trim())
-            .filter(Boolean)
-            .filter(t => t.length <= 40)
-            .filter(t => /^[\w\s/&().,-]+$/.test(t));
-        }
-
-        for (const t of titles) {
-          const sec = findSection(t);
-          res[t] = Array.from(new Set(harvestSimple(sec)));
-        }
-        return res;
+      function findSection(label) {
+        const all = Array.from(document.querySelectorAll("section,article,div"));
+        return all.find(el => (el.textContent || "").trim().toLowerCase().includes(label.toLowerCase()));
       }
 
-      // More detailed table often found under “See Details”
-      function grabDetails() {
-        // We look for rows that look like:
-        // [Category]  [Sub-item badges ...]  [Purpose chips ...]  [TRACKED|LINKED|NOT LINKED markers]
-        const details = {};
-        const containers = Array.from(document.querySelectorAll("section,div,article"));
-        const root = containers.find(el => /App Privacy|Data Used to Track/i.test(el.textContent || "")) || document.body;
+      function harvestSimple(section) {
+        if (!section) return [];
+        const nodes = Array.from(section.querySelectorAll("li,span,div"));
+        return nodes
+          .map(n => (n.textContent || "").trim())
+          .filter(Boolean)
+          .filter(t => t.length <= 40)
+          .filter(t => /^[\w\s/&().,'-]+$/.test(t));
+      }
 
+      // High-level chips under "App Privacy"
+      function grabBuckets() {
+        const titles = ["Data Used to Track You", "Data Linked to You", "Data Not Linked to You"];
+        const out = Object.fromEntries(titles.map(t => [t, []]));
+        for (const t of titles) {
+          const sec = findSection(t);
+          out[t] = Array.from(new Set(harvestSimple(sec)));
+        }
+        return out;
+      }
+
+      // More detailed breakdown (after "See Details")
+      function grabDetails() {
+        const details = {};
+        const root =
+          Array.from(document.querySelectorAll("section,article,div"))
+            .find(el => /app privacy|data used to track|data linked to you/i.test(el.textContent || "")) || document.body;
+
+        // Rows can be div rows, table rows, or list items depending on Apple’s template
         const rows = Array.from(root.querySelectorAll("table tr, div[role='row'], li"));
         rows.forEach(row => {
           const text = (row.textContent || "").trim();
           if (!text) return;
 
-          // Category / bucket label (left-most strong or first cell)
+          // Guess a category label (left-most strong/th/cell)
           const labelEl =
             row.querySelector("th, strong, h3, h4, [data-test-detail-header]") ||
             row.querySelector("div, span");
@@ -120,38 +131,38 @@ export async function scrapePrivacyForApp(appId) {
           const bucket = (labelEl.textContent || "").trim();
           if (!bucket) return;
 
-          // Collect “subtypes” as pill/badge texts
-          const badgeEls = Array.from(row.querySelectorAll("[class*=Badge], [class*=Tag], li, .badge, .chip, span"));
-          const subtypes = Array.from(
-            new Set(
-              badgeEls
-                .map(b => (b.textContent || "").trim())
-                .filter(x => x && x.length <= 40)
-            )
-          );
+          // Sub-items (chips/badges/pills)
+          const badgeEls = Array.from(row.querySelectorAll("[class*=Badge], [class*=Tag], .badge, .chip, li, span"));
+          const subtypes = Array.from(new Set(
+            badgeEls.map(b => (b.textContent || "").trim()).filter(x => x && x.length <= 48)
+          ));
 
-          // Purposes are often rendered as chips after a label like “Used for”
-          const purposeKeywords = ["Advertising", "Analytics", "App Functionality", "Personalization", "Developer's Advertising", "Product Personalization", "Fraud Prevention", "Other Purposes"];
-          const purposes = Array.from(
-            new Set(
-              purposeKeywords.filter(k => text.toLowerCase().includes(k.toLowerCase()))
-            )
-          );
+          // Purposes: look for common keywords in the row’s text
+          const PURPOSES = [
+            "Advertising",
+            "Developer's Advertising",
+            "Personalization",
+            "Product Personalization",
+            "Analytics",
+            "Fraud Prevention",
+            "App Functionality",
+            "Other Purposes"
+          ];
+          const purposes = Array.from(new Set(PURPOSES.filter(p => text.toLowerCase().includes(p.toLowerCase()))));
 
-          // Flags (rough heuristics from text)
+          // Flags
           const tracked = /track/i.test(text);
           const linked = /link(ed)? to you/i.test(text);
           const notLinked = /not linked/i.test(text);
 
-          const key = bucket;
-          if (!details[key]) {
-            details[key] = { subtypes: [], purposes: [], tracked: false, linked: false, notLinked: false };
+          if (!details[bucket]) {
+            details[bucket] = { subtypes: [], purposes: [], tracked: false, linked: false, notLinked: false };
           }
-          details[key].subtypes = Array.from(new Set([...details[key].subtypes, ...subtypes]));
-          details[key].purposes = Array.from(new Set([...details[key].purposes, ...purposes]));
-          details[key].tracked = details[key].tracked || tracked;
-          details[key].linked = details[key].linked || linked;
-          details[key].notLinked = details[key].notLinked || notLinked;
+          details[bucket].subtypes = Array.from(new Set([...details[bucket].subtypes, ...subtypes]));
+          details[bucket].purposes = Array.from(new Set([...details[bucket].purposes, ...purposes]));
+          details[bucket].tracked = details[bucket].tracked || tracked;
+          details[bucket].linked = details[bucket].linked || linked;
+          details[bucket].notLinked = details[bucket].notLinked || notLinked;
         });
 
         return details;
@@ -160,18 +171,18 @@ export async function scrapePrivacyForApp(appId) {
       return { buckets: grabBuckets(), details: grabDetails() };
     });
 
-    // Canonicalize & shape
-    const labels = raw.buckets;
+    // Canonicalize details keys & subtypes
+    const labels = raw.buckets || {};
     const details = {};
-    for (const [bucket, obj] of Object.entries(raw.details || {})) {
+    for (const [bucket, info] of Object.entries(raw.details || {})) {
       const key = bucket.trim();
-      const subs = Array.from(new Set((obj.subtypes || []).map(s => canonBucket(s))));
+      const subs = Array.from(new Set((info.subtypes || []).map(s => canonBucket(s))));
       details[key] = {
         subtypes: subs,
-        purposes: obj.purposes || [],
-        tracked: !!obj.tracked,
-        linked: !!obj.linked,
-        notLinked: !!obj.notLinked
+        purposes: info.purposes || [],
+        tracked: !!info.tracked,
+        linked: !!info.linked,
+        notLinked: !!info.notLinked
       };
     }
 
@@ -179,7 +190,8 @@ export async function scrapePrivacyForApp(appId) {
       as_of: new Date().toISOString(),
       privacy_labels: labels,
       privacy_details: details,
-      privacy_policy_url: privacyPolicyUrl || null,
+      privacy_policy_url: linkInfo.privacyPolicyUrl || null,
+      developer_website_url: linkInfo.developerWebsiteUrl || null,
       sources: [{ label: "App Store (IE)", url }]
     };
   } finally {
