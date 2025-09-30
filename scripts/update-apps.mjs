@@ -1,116 +1,92 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-import fetch from "node-fetch";
-import pLimit from "p-limit";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 import { scrapePrivacyForApp } from "./scrape-privacy.mjs";
 
-const COUNTRY = "ie";
-const GENRE_GAMES = 6014;
-const LIMIT = 50;
-const OUT_PATH = "data/apps.json";
-const CACHE_DIR = "data/privacy_cache";
-const UA = process.env.USER_AGENT || "FiosFonBot/1.0";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(__dirname, "..");
+const DATA = path.join(ROOT, "data");
+const APPS_JSON = path.join(DATA, "apps.json");
+const CACHE_DIR = path.join(DATA, "privacy_cache");
 
-async function ensureDir(dir){ await fs.mkdir(dir,{recursive:true}); }
-function rssUrl(kind, genre){ const b=`https://itunes.apple.com/${COUNTRY}/rss/${kind}/limit=${LIMIT}`; return `${b}${genre?`/genre=${genre}`:""}/json`; }
-async function fetchJSON(url){ const r=await fetch(url,{headers:{"user-agent":UA}}); if(!r.ok) throw new Error(`HTTP ${r.status} ${url}`); return r.json(); }
+async function ensureDir(p) {
+  await fs.mkdir(p, { recursive: true });
+}
 
-function parseRssApps(json){
-  const entries = json?.feed?.entry || [];
-  return entries.map((e,i) => {
-    const images = e["im:image"] || [];
-    const icon = images.length ? images[images.length-1].label : null;
-    const link = e.link?.attributes?.href || e.id?.label || "";
-    const idMatch = link.match(/id(\d+)/);
-    const app_id = idMatch ? idMatch[1] : undefined;
-    return {
-      rank: i+1,
-      name: e["im:name"]?.label || "",
-      platform: "iOS",
-      developer: e["im:artist"]?.label || "",
-      icon, app_id,
-      sources: link ? [{label:"App Store (IE)", url:link}] : []
-    };
+async function readJson(p, fallback = null) {
+  try { return JSON.parse(await fs.readFile(p, "utf8")); }
+  catch { return fallback; }
+}
+
+async function writeJson(p, obj) {
+  await fs.writeFile(p, JSON.stringify(obj, null, 2) + "\n", "utf8");
+}
+
+async function mergePrivacy(app) {
+  const appId = app.app_id || app.id;
+  if (!appId) return app;
+
+  const cachePath = path.join(CACHE_DIR, `${appId}.json`);
+  let cached = await readJson(cachePath);
+
+  if (!cached) {
+    try {
+      cached = await scrapePrivacyForApp(appId);
+      await writeJson(cachePath, cached);
+    } catch (e) {
+      console.warn(`Privacy scrape failed for ${app.name}: ${e.message}`);
+      return app;
+    }
+  }
+
+  const merged = { ...app };
+
+  // high-level buckets
+  if (cached.privacy_labels) merged.privacy_labels = cached.privacy_labels;
+
+  // new: per-bucket details
+  if (cached.privacy_details) merged.privacy_details = cached.privacy_details;
+
+  // policy url
+  if (cached.privacy_policy_url) merged.privacy_policy_url = cached.privacy_policy_url;
+
+  // add/merge sources
+  const srcs = new Map((merged.sources || []).map(s => [s.url, s]));
+  for (const s of (cached.sources || [])) srcs.set(s.url, s);
+  merged.sources = Array.from(srcs.values());
+
+  // optionally stamp/refresh summary
+  if (!merged.tracking_summary && merged.privacy_labels) {
+    const hasTrack = (merged.privacy_labels["Data Used to Track You"] || []).length > 0;
+    const hasLinked = (merged.privacy_labels["Data Linked to You"] || []).length > 0;
+    merged.tracking_summary = [
+      hasTrack ? "Some data may be used to track you across apps and websites." : "No tracking categories disclosed.",
+      hasLinked ? "Some data may be collected and linked to your identity." : "No linked data categories disclosed."
+    ];
+  }
+
+  return merged;
+}
+
+async function main() {
+  await ensureDir(CACHE_DIR);
+
+  const data = await readJson(APPS_JSON, { as_of: "", apps: [] });
+  const apps = data.apps || [];
+
+  const out = [];
+  for (const app of apps) {
+    out.push(await mergePrivacy(app));
+  }
+
+  const result = { as_of: new Date().toISOString().slice(0, 10), apps: out };
+  await writeJson(APPS_JSON, result);
+  console.log("Wrote", APPS_JSON);
+}
+
+if (process.env.NODE_ENV !== "test") {
+  main().catch(e => {
+    console.error(e);
+    process.exit(1);
   });
 }
-
-async function fetchCharts(){
-  const [free,paid,games] = await Promise.all([
-    fetchJSON(rssUrl("topfreeapplications")),
-    fetchJSON(rssUrl("toppaidapplications")),
-    fetchJSON(rssUrl("topfreeapplications", GENRE_GAMES)),
-  ]);
-  return { as_of: new Date().toISOString().slice(0,10),
-           free: parseRssApps(free),
-           paid: parseRssApps(paid),
-           games: parseRssApps(games) };
-}
-
-function normalizeSummary(labels){
-  const tracked = (labels["Data Used to Track You"]||[]).length>0;
-  const linked  = (labels["Data Linked to You"]||[]).length>0;
-  const out=[];
-  if(tracked) out.push("Identifiers and usage data may be used for advertising/personalisation.");
-  if(linked) out.push("Some data may be collected and linked to your identity for app functionality or analytics.");
-  return out;
-}
-
-async function loadCache(id){ try{ return JSON.parse(await fs.readFile(path.join(CACHE_DIR,`${id}.json`),"utf8")); }catch{ return null; } }
-async function saveCache(id,obj){ await fs.writeFile(path.join(CACHE_DIR,`${id}.json`), JSON.stringify(obj,null,2)); }
-
-async function enrichApps(apps){
-  await ensureDir(CACHE_DIR);
-  const limit = pLimit(3);
-  const tasks = apps.map(app => limit(async () => {
-    if(!app.app_id) return app;
-    let priv = await loadCache(app.app_id);
-    const fresh = priv && (Date.now()-Date.parse(priv.as_of) < 14*24*3600*1000);
-    if(!fresh){
-      try {
-        priv = await scrapePrivacyForApp(app.app_id);
-        await saveCache(app.app_id, priv);
-        await new Promise(r=>setTimeout(r, 500+Math.random()*400));
-      } catch(e) {
-        if(!priv) console.warn("Privacy scrape failed:", app.name, e.message);
-      }
-    }
-    const merged = { ...app };
-    if (priv?.privacy_labels){
-      merged.privacy_labels = priv.privacy_labels;
-      merged.tracking_summary = normalizeSummary(priv.privacy_labels);
-      if(!merged.sources?.length) merged.sources=[{label:"App Store (IE)", url:`https://apps.apple.com/ie/app/id${app.app_id}`}];
-    }
-    return merged;
-  }));
-  return Promise.all(tasks);
-}
-
-async function run(){
-  const charts = await fetchCharts();
-  const allApps = [...charts.free, ...charts.paid, ...charts.games];
-
-  // unique by name+developer
-  const key = a => `${a.name.toLowerCase()}|${a.developer.toLowerCase()}`;
-  const map = new Map();
-  allApps.forEach(a => map.set(key(a), a));
-
-  const enrichedUnique = await enrichApps([...map.values()]);
-
-  const findEnriched = a => enrichedUnique.find(x => key(x)===key(a)) || a;
-  const mapBack = list => list.map(a => ({ ...a, ...findEnriched(a), rank:a.rank }));
-
-  const finalJson = {
-    as_of: charts.as_of,
-    boards: {
-      free:  { as_of: charts.as_of, apps: mapBack(charts.free)  },
-      paid:  { as_of: charts.as_of, apps: mapBack(charts.paid)  },
-      games: { as_of: charts.as_of, apps: mapBack(charts.games) }
-    }
-  };
-  finalJson.apps = [...finalJson.boards.free.apps, ...finalJson.boards.paid.apps, ...finalJson.boards.games.apps];
-
-  await fs.writeFile(OUT_PATH, JSON.stringify(finalJson,null,2));
-  console.log("Wrote", OUT_PATH);
-}
-
-run().catch(err => { console.error(err); process.exit(1); });
