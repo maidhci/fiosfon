@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "as_of": "2025-09-26",
   "boards": {
     "free": {
@@ -15,6 +16,7 @@
             {
               "label": "App Store (IE)",
               "url": "https://apps.apple.com/ie/app/ryder-cup/id1534371975?uo=2"
+=======
   "as_of": "2025-09-30",
   "boards": {
     "free": {
@@ -31,10 +33,12 @@
             {
               "label": "App Store (IE)",
               "url": "https://apps.apple.com/ie/app/vinted-shop-sell-pre-loved/id632064380?uo=2"
+>>>>>>> f2c6db2af2318b31c582bf192b4f8e009df85964
             }
           ],
           "privacy_labels": {
             "Data Used to Track You": [
+<<<<<<< HEAD
               "Location",
               "Device ID"
             ],
@@ -51,6 +55,7 @@
               "Performance Data",
               "Diagnostics"
             ]
+=======
               "Vinted Limited",
               "Advertising Data",
               "Usage Data",
@@ -82,6 +87,7 @@
               "Other Data Types"
             ],
             "Data Not Linked to You": []
+>>>>>>> f2c6db2af2318b31c582bf192b4f8e009df85964
           },
           "tracking_summary": [
             "Identifiers and usage data may be used for advertising/personalisation.",
@@ -90,6 +96,7 @@
         },
         {
           "rank": 2,
+<<<<<<< HEAD
           "name": "Remini - AI Photo Enhancer",
           "platform": "iOS",
           "developer": "Bending Spoons Apps ApS",
@@ -133,6 +140,7 @@
           },
           "tracking_summary": [
             "Identifiers and usage data may be used for advertising/personalisation.",
+=======
           "name": "ChatGPT",
           "platform": "iOS",
           "developer": "OpenAI",
@@ -158,11 +166,14 @@
             "Data Not Linked to You": []
           },
           "tracking_summary": [
+>>>>>>> f2c6db2af2318b31c582bf192b4f8e009df85964
             "Some data may be collected and linked to your identity for app functionality or analytics."
           ]
         },
         {
           "rank": 3,
+<<<<<<< HEAD
+=======
           "name": "SQUID - Loyalty + Rewards",
           "platform": "iOS",
           "developer": "Squid Rewards",
@@ -195,6 +206,7 @@
         },
         {
           "rank": 4,
+>>>>>>> f2c6db2af2318b31c582bf192b4f8e009df85964
           "name": "Google Gemini",
           "platform": "iOS",
           "developer": "Google",
@@ -210,33 +222,42 @@
             "Data Used to Track You": [],
             "Data Linked to You": [
               "Location",
+<<<<<<< HEAD
               "Email Address",
               "Name",
               "User ID",
+=======
               "Contact Info",
               "Name",
               "Identifiers",
+>>>>>>> f2c6db2af2318b31c582bf192b4f8e009df85964
               "Purchases",
               "Customer Support",
               "User Content",
               "Browsing/Search History",
+<<<<<<< HEAD
               "Device ID",
               "Product Interaction",
               "Usage Data",
               "Crash Data",
               "Performance Data",
+=======
               "Usage Data",
               "Crash Data",
+>>>>>>> f2c6db2af2318b31c582bf192b4f8e009df85964
               "Diagnostics",
               "Other Data Types",
               "Sensitive Info",
               "Physical Address",
+<<<<<<< HEAD
               "Phone Number",
               "Contacts",
               "Emails or Text Messages",
               "Photos or Videos"
+=======
               "Contacts",
               "Emails or Text Messages"
+>>>>>>> f2c6db2af2318b31c582bf192b4f8e009df85964
             ],
             "Data Not Linked to You": []
           },
@@ -245,6 +266,7 @@
           ]
         },
         {
+<<<<<<< HEAD
           "rank": 4,
           "name": "Vinted: Shop & sell pre-loved",
           "platform": "iOS",
