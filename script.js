@@ -376,3 +376,165 @@ function setupControls(){
   ['free','paid','games'].forEach(setupRangeControls);
 
   document.getElementById('refresh-data')?.addEventListener('click', (e
+    // Refresh button clears caches and reloads
+  document.getElementById('refresh-data')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    // Clear cached RSS + artwork
+    ['free','paid','games'].forEach(k => localStorage.removeItem('ff-cache:rss:'+k+':'+RSS_LIMIT));
+    Object.keys(localStorage).forEach(k => { if (k.startsWith('art:')) localStorage.removeItem(k); });
+    init(true);
+  });
+
+  // Drawer controls
+  document.getElementById('drawer-close')?.addEventListener('click', closeDrawer);
+  document.getElementById('drawer-backdrop')?.addEventListener('click', closeDrawer);
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+  // Glossary chip clicks
+  document.body.addEventListener('click', async (e) => {
+    const li = e.target.closest('.privacy li');
+    if (!li) return;
+    const term = li.dataset.term || li.textContent.trim();
+    const glossary = await loadGlossary();
+    const entry = glossary.terms?.[term] || glossary.terms?.[term.toLowerCase()];
+    openDrawer(term, entry || 'This category groups similar types of data. Exact collection depends on the features you use and your settings.');
+  });
+
+  // Search (local first, then live iTunes Search)
+  const input = document.getElementById('search-input');
+  const resultsEl = document.getElementById('search-results');
+  const noRes = document.getElementById('no-results');
+  let debounceId = null;
+
+  input?.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q){
+      resultsEl.innerHTML = '';
+      if (noRes) noRes.hidden = true;
+      if (searchAbort) searchAbort.abort();
+      return;
+    }
+
+    const seen = new Set();
+    const localCombined = ['free','paid','games']
+      .flatMap(k => state.boards[k].apps)
+      .filter(app => {
+        const k = appKey(app);
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return [app.name, app.developer].filter(Boolean).join(' ').toLowerCase().includes(q);
+      });
+
+    resultsEl.innerHTML = '';
+    renderAppsInto(resultsEl, localCombined, 'search');
+    if (noRes) noRes.hidden = localCombined.length > 0;
+
+    clearTimeout(debounceId);
+    debounceId = setTimeout(async () => {
+      try{
+        const live = await liveSearchAllApps(q);
+        const mapLocal = new Map((state.localApps||[]).map(a => [normaliseName(a.name), a]));
+        const enriched = live.map(a => {
+          const hit = mapLocal.get(normaliseName(a.name));
+          return hit ? { ...a, tracking_summary: hit.tracking_summary, privacy_labels: hit.privacy_labels } : a;
+        });
+        const have = new Set(localCombined.map(appKey));
+        const uniqueLive = enriched.filter(a => !have.has(appKey(a)));
+        const merged = localCombined.concat(uniqueLive);
+
+        resultsEl.innerHTML = '';
+        if (merged.length){
+          renderAppsInto(resultsEl, merged, 'search');
+          if (noRes) noRes.hidden = true;
+        } else {
+          if (noRes) noRes.hidden = false;
+        }
+      }catch(err){
+        if (err?.name === 'AbortError') return;
+        console.warn('Search failed:', err.message);
+      }
+    }, 300);
+  });
+}
+
+/* =========================
+   Data loading with safe fallback
+   ========================= */
+
+// Toggle: render from local apps.json only (set to false to use Apple RSS)
+const USE_LOCAL_ONLY = true;
+
+async function loadBoards(){
+  // Load local dataset
+  let local = { apps: [], as_of: '' };
+  try { local = await loadJSON('data/apps.json'); } catch {}
+  state.localApps = local.apps || [];
+
+  if (USE_LOCAL_ONLY) {
+    const asof = local.as_of || new Date().toLocaleDateString();
+    ['free','paid','games'].forEach(k => {
+      state.boards[k].apps = [...state.localApps];
+      state.boards[k].asOf = asof + ' (local)';
+    });
+    return;
+  }
+
+  // Normal path: fetch Apple RSS and enrich with local privacy labels
+  const safeFetch = async (key, fn) => {
+    try { return await getCached(key, fn); }
+    catch(e){ console.warn('RSS failed:', e.message); return { as_of: '', apps: [] }; }
+  };
+
+  const freeRss  = await safeFetch('rss:free:'+RSS_LIMIT,
+                    () => fetchAppleChart({ kind:'topfreeapplications', limit:RSS_LIMIT }));
+  const paidRss  = await safeFetch('rss:paid:'+RSS_LIMIT,
+                    () => fetchAppleChart({ kind:'toppaidapplications', limit:RSS_LIMIT }));
+  const gamesRss = await safeFetch('rss:games:'+RSS_LIMIT,
+                    () => fetchAppleChart({ kind:'topfreeapplications', limit:RSS_LIMIT, genre:GENRE_GAMES }));
+
+  const useLocal = (rss) => (rss.apps && rss.apps.length) ? rss
+                      : { as_of: local.as_of || '', apps: [...state.localApps] };
+
+  const free  = useLocal(freeRss);
+  const paid  = useLocal(paidRss);
+  const games = useLocal(gamesRss);
+
+  state.boards.free.apps  = mergeAppsByName(free.apps,  state.localApps);
+  state.boards.free.asOf  = free.as_of  || local.as_of || '';
+
+  state.boards.paid.apps  = mergeAppsByName(paid.apps,  state.localApps);
+  state.boards.paid.asOf  = paid.as_of  || local.as_of || '';
+
+  state.boards.games.apps = mergeAppsByName(games.apps, state.localApps);
+  state.boards.games.asOf = games.as_of || local.as_of || '';
+}
+
+async function init(forceRefresh=false){
+  try {
+    await loadBoards();
+  } catch(err){
+    console.error('Failed to load boards:', err);
+    // last-resort fallback to local only
+    ['free','paid','games'].forEach(k => {
+      state.boards[k].apps = state.localApps;
+      state.boards[k].asOf = state.boards[k].asOf || '';
+    });
+  }
+
+  try {
+    const rights = await loadJSON('data/rights_ie.json');
+    state.rights = rights.items || [];
+  } catch(err){
+    console.warn('Rights failed to load:', err.message);
+  }
+
+  renderAllBoards();
+  renderRights();
+
+  if (forceRefresh) localStorage.setItem('ff-last-refresh', String(Date.now()));
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  setupControls();
+  init();
+});
