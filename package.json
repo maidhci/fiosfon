@@ -1,0 +1,13 @@
+{
+  "name": "fiosfon",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "update:apps": "node scripts/update-apps.mjs"
+  },
+  "dependencies": {
+    "p-limit": "^5.0.0",
+    "puppeteer": "^22.15.0",
+    "node-html-parser": "^6.1.11"
+  }
+}
