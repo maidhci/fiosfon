@@ -375,11 +375,9 @@ function setupRangeControls(boardKey){
 function setupControls(){
   ['free','paid','games'].forEach(setupRangeControls);
 
-  document.getElementById('refresh-data')?.addEventListener('click', (e
-    // Refresh button clears caches and reloads
+  // Refresh button clears caches and reloads
   document.getElementById('refresh-data')?.addEventListener('click', (e) => {
     e.preventDefault();
-    // Clear cached RSS + artwork
     ['free','paid','games'].forEach(k => localStorage.removeItem('ff-cache:rss:'+k+':'+RSS_LIMIT));
     Object.keys(localStorage).forEach(k => { if (k.startsWith('art:')) localStorage.removeItem(k); });
     init(true);
