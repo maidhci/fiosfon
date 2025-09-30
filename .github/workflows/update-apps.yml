@@ -22,7 +22,7 @@ jobs:
         run: npm install
 
       - name: Run updater
-        run: USER_AGENT="FiosFonBot/1.0 (contact: you@example.com)" npm run update:apps
+        run: USER_AGENT="FiosFonBot/1.0 (contact: maidhci@gmail.com)" npm run update:apps
 
       - name: Commit and push if changed
         run: |
