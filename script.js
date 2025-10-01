@@ -259,13 +259,27 @@ function computePrivacyScore(app){
 
 function renderRiskMeter(containerEl, app){
   const { score, band } = computePrivacyScore(app);
-  const pct = Math.max(0, Math.min(100, score));
+  const pct = Math.max(0, Math.min(100, score)); // 0..100
+
+  const bandClass =
+    band === "High" ? "high" :
+    band === "Medium" ? "med" : "low";
+
   containerEl.innerHTML = `
-    <div class="risk-label">Data collection intensity <strong>${band}</strong></div>
-    <div class="risk-bar" role="img" aria-label="Data collection intensity ${pct} out of 100">
-      <span style="--p:${pct}%"></span>
+    <div class="risk-label">
+      Data collection intensity
+      <span class="risk-badge ${bandClass}">${band}</span>
     </div>
-    <div class="risk-scale"><span>low</span><span>medium</span><span>high</span></div>
+
+    <div class="risk-track" role="img"
+         aria-label="Data collection intensity ${Math.round(pct)} out of 100">
+      <div class="risk-marker" style="left:${pct}%"
+           title="${Math.round(pct)}/100"></div>
+    </div>
+
+    <div class="risk-scale">
+      <span>low</span><span>medium</span><span>high</span>
+    </div>
   `;
 }
 
