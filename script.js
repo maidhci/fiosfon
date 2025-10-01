@@ -82,6 +82,49 @@ function mergeAppsByName(rssApps, localApps){
   });
 }
 
+function appPermalink(app) {
+  // simplest: current page + app name param (works even if we don’t parse it)
+  const u = new URL(location.href);
+  u.searchParams.set('app', app.name);
+  return u.toString();
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+async function shareApp(app) {
+  const url = appPermalink(app);
+  const title = `${app.name} – data collection overview`;
+  const text =
+    `${app.name} by ${app.developer || 'Developer'}\n` +
+    `See data types (linked/track) and the collection intensity meter.`;
+
+  // Web Share API (mobile & some desktop)
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, text, url });
+      return;
+    } catch (err) {
+      // user cancelled or API not available — fall through to copy
+    }
+  }
+
+  // Fallback: copy URL to clipboard
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('Link copied');
+  } catch {
+    // Last-resort fallback: open the native prompt
+    window.prompt('Copy this link:', url);
+  }
+}
+
 /* =========================
    Apple APIs
    ========================= */
