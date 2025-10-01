@@ -290,3 +290,25 @@ nav a:hover { border-color: var(--ut-orange); color: var(--ut-orange); }
 .risk-badge.low   { color: #2e7d32; }
 .risk-badge.med   { color: #ff8f00; }
 .risk-badge.high  { color: #c62828; }
+
+.sources-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.sources {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.share-btn {
+  font: inherit;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border, #d0d7de);
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
