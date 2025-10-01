@@ -1,12 +1,16 @@
-name: "Update apps & privacy data"
+name: Update apps & privacy data
 
 on:
-  workflow_dispatch: # allow manual runs
+  workflow_dispatch:
   schedule:
-    - cron: "0 3 * * *" # daily at 03:00 UTC
+    - cron: "0 3 * * *"  # daily at 03:00 UTC
 
 permissions:
   contents: write
+
+concurrency:
+  group: data-update
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -15,6 +19,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0         # needed for pull/rebase
+          persist-credentials: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -22,7 +29,7 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run updater
         env:
@@ -31,12 +38,25 @@ jobs:
 
       - name: Commit and push if changed
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/apps.json data/privacy_cache || true
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(data): update apps.json with privacy labels [skip ci]"
-            git push
-          else
-            echo "No changes to commit"
+          set -e
+          BRANCH="${GITHUB_REF_NAME:-main}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Only add the JSON; keep the cache untracked
+          git add data/apps.json
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
           fi
+
+          git commit -m "chore(data): update apps.json with privacy labels [skip ci]"
+
+          # Rebase on remote to avoid non-fast-forward errors
+          git fetch origin "${BRANCH}"
+          git pull --rebase origin "${BRANCH}"
+
+          # Push back to the same branch
+          git push origin HEAD:"${BRANCH}"
