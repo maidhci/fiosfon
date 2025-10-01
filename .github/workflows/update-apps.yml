@@ -1,16 +1,9 @@
 name: Update apps & privacy data
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # allow manual runs
   schedule:
-    - cron: "0 3 * * *"  # daily at 03:00 UTC
-
-permissions:
-  contents: write
-
-concurrency:
-  group: data-update
-  cancel-in-progress: false
+    - cron: "0 3 * * *"   # run daily at 03:00 UTC
 
 jobs:
   build:
@@ -20,8 +13,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0         # needed for pull/rebase
-          persist-credentials: true
+          fetch-depth: 0   # so we can rebase/push safely
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -29,34 +21,20 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Run updater
-        env:
-          USER_AGENT: "FiosFonBot/1.0 (contact: maidhci@gmail.com)"
-        run: npm run update:apps
+        run: USER_AGENT="FiosFonBot/1.0 (contact: maidhci@gmail.com)" npm run update:apps
 
       - name: Commit and push if changed
         run: |
-          set -e
-          BRANCH="${GITHUB_REF_NAME:-main}"
-
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Only add the JSON; keep the cache untracked
-          git add data/apps.json
-
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-            exit 0
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/apps.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(data): update apps.json with privacy labels [skip ci]"
+            git pull --rebase origin main
+            git push origin main
+          else
+            echo "No changes to commit"
           fi
-
-          git commit -m "chore(data): update apps.json with privacy labels [skip ci]"
-
-          # Rebase on remote to avoid non-fast-forward errors
-          git fetch origin "${BRANCH}"
-          git pull --rebase origin "${BRANCH}"
-
-          # Push back to the same branch
-          git push origin HEAD:"${BRANCH}"
