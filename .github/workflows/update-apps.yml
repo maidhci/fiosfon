@@ -1,9 +1,12 @@
 name: Update apps & privacy data
 
 on:
-  workflow_dispatch:        # manual runs
+  workflow_dispatch:
   schedule:
-    - cron: "0 3 * * *"     # daily at 03:00 UTC
+    - cron: "0 3 * * *"
+
+permissions:
+  contents: write   # <-- allows pushing with GITHUB_TOKEN
 
 jobs:
   build:
@@ -13,30 +16,36 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0     # full history so we can rebase/push
+          fetch-depth: 0
+          persist-credentials: true  # configures remote with GITHUB_TOKEN
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+      - name: Install deps
+        run: npm install
 
       - name: Run updater
         env:
-          USER_AGENT: 'FiosFonBot/1.0 (contact: maidhci@gmail.com)'
+          USER_AGENT: "FiosFonBot/1.0 (contact: maidhci@gmail.com)"
         run: npm run update:apps
 
       - name: Commit and push if changed
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+          # We ignore cached scrapes; only commit apps.json
           git add data/apps.json || true
+
           if ! git diff --cached --quiet; then
             git commit -m "chore(data): update apps.json with privacy labels [skip ci]"
-            git pull --rebase origin main
-            git push origin main
+            # rebase to avoid non-fast-forward errors
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin HEAD:"${GITHUB_REF_NAME}"
           else
             echo "No changes to commit"
           fi
