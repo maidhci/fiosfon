@@ -382,13 +382,31 @@ function renderAppsInto(listEl, apps, context='board'){
 
     // Sources
     const sources = frag.querySelector('.sources');
-    if (app.sources && app.sources.length){
-      sources.innerHTML =
-        `<strong>Sources:</strong> ` +
-        app.sources.map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Link'}</a>`).join(' ');
-    }
+const shareBtn = frag.querySelector('.share-btn');
 
-    listEl.appendChild(frag);
+if (app.sources && app.sources.length){
+  sources.innerHTML =
+    `<strong>Sources:</strong> ` +
+    app.sources.map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Link'}</a>`).join(' ');
+} else {
+  sources.innerHTML = '';
+}
+
+// Wire up share
+if (shareBtn) {
+  shareBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const payload = buildSharePayload(app);
+
+    if (navigator.share) {
+      try {
+        await navigator.share(payload);
+        return;
+      } catch (err) {
+        // cancelled / not supported, fallback
+      }
+    }
+    showShareMenu(shareBtn, app);
   });
 }
 
