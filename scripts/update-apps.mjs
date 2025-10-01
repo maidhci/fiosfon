@@ -3,21 +3,16 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { scrapePrivacyForApp } from "./scrape-privacy.mjs";
 
-// Node 18+ has fetch built-in
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const DATA_DIR = path.join(ROOT, "data");
 const APPS_JSON = path.join(DATA_DIR, "apps.json");
 const CACHE_DIR = path.join(DATA_DIR, "privacy_cache");
 
-const COUNTRY = "ie";
-const LIMIT = Number(process.env.CHART_LIMIT || 50);
-const GENRE_GAMES = 6014;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function ensureDir(p) {
-  await fs.mkdir(p, { recursive: true });
-}
+// Node 18+ has global fetch
+async function ensureDir(p) { await fs.mkdir(p, { recursive: true }); }
 async function readJson(p, fallback = null) {
   try { return JSON.parse(await fs.readFile(p, "utf8")); }
   catch { return fallback; }
@@ -26,67 +21,50 @@ async function writeJson(p, obj) {
   await fs.writeFile(p, JSON.stringify(obj, null, 2) + "\n", "utf8");
 }
 
-function rssUrl({ kind, limit = 50, country = COUNTRY, genre }) {
+function idFromUrl(u) {
+  if (!u) return null;
+  const m = u.match(/\/id(\d+)(?:\?|$)/);
+  return m ? m[1] : null;
+}
+
+async function fetchRss(kind, limit = 50, genre = null) {
+  const country = "ie";
   const base = `https://itunes.apple.com/${country}/rss/${kind}/limit=${limit}`;
-  const g = genre ? `/genre=${genre}` : "";
-  return `${base}${g}/json`;
-}
-
-function parseAppFromRssEntry(e, idx) {
-  const images = e["im:image"] || [];
-  const icon = images.length ? images[images.length - 1].label : null;
-  const name = e["im:name"]?.label || "";
-  const developer = e["im:artist"]?.label || "";
-  const link = e.link?.attributes?.href || e.id?.label || null;
-  const appId = (() => {
-    if (!link) return null;
-    const m = link.match(/\/id(\d+)(?:\?|$)/);
-    return m ? m[1] : null;
-  })();
-
-  const sources = link ? [{ label: "App Store (RSS)", url: link }] : [];
-
-  return {
-    rank: idx + 1,
-    name,
-    platform: "iOS",
-    developer,
-    icon,
-    app_id: appId,
-    sources
-  };
-}
-
-async function fetchChart(kind, { genre } = {}) {
-  const url = rssUrl({ kind, limit: LIMIT, genre });
+  const url = genre ? `${base}/genre=${genre}/json` : `${base}/json`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Apple RSS HTTP ${res.status} (${url})`);
+  if (!res.ok) throw new Error(`RSS ${kind} HTTP ${res.status}`);
   const data = await res.json();
-  const apps = (data.feed?.entry || []).map((e, i) => parseAppFromRssEntry(e, i));
-  const as_of = new Date().toISOString().slice(0, 10);
-  return { as_of, apps };
+  const entries = data.feed?.entry || [];
+
+  return entries.map((e, idx) => {
+    const images = e["im:image"] || [];
+    const icon = images.length ? images[images.length - 1].label : null;
+    const link = e.link?.attributes?.href || e.id?.label || null;
+    return {
+      rank: idx + 1,
+      name: e["im:name"]?.label || "",
+      platform: "iOS",
+      developer: e["im:artist"]?.label || "",
+      icon,
+      sources: link ? [{ label: "App Store (RSS)", url: link }] : []
+    };
+  });
 }
 
-async function lookupFromiTunes(appId) {
-  try {
-    const url = `https://itunes.apple.com/lookup?id=${encodeURIComponent(appId)}&country=${COUNTRY}`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const json = await res.json();
-    const r = (json.results || [])[0];
-    if (!r) return null;
-    return {
-      developerWebsiteUrl: r.sellerUrl || null,
-      artistViewUrl: r.artistViewUrl || null
-    };
-  } catch {
-    return null;
-  }
+function keyNameDev(a) {
+  return `${(a.name || "").toLowerCase().trim()}|${(a.developer || "").toLowerCase().trim()}`;
 }
 
 async function mergePrivacy(app) {
-  const appId = app.app_id || app.id;
-  if (!appId) return app;
+  // get appId from existing, or from sources
+  let appId = app.app_id || app.id;
+  if (!appId && app.sources?.length) {
+    for (const s of app.sources) {
+      const id = idFromUrl(s.url);
+      if (id) { appId = id; break; }
+    }
+  }
+  if (!appId) return app; // skip if we can’t determine id
 
   const cachePath = path.join(CACHE_DIR, `${appId}.json`);
   let cached = await readJson(cachePath);
@@ -97,27 +75,20 @@ async function mergePrivacy(app) {
       await writeJson(cachePath, cached);
     } catch (e) {
       console.warn(`Privacy scrape failed for "${app.name}" (${appId}): ${e.message}`);
-      return app; // keep original
+      return app;
     }
   }
 
-  const merged = { ...app };
+  const merged = { ...app, app_id: appId };
 
   if (cached.privacy_labels) merged.privacy_labels = cached.privacy_labels;
   if (cached.privacy_details) merged.privacy_details = cached.privacy_details;
   if (cached.privacy_policy_url) merged.privacy_policy_url = cached.privacy_policy_url;
   if (cached.developer_website_url) merged.developer_website_url = cached.developer_website_url;
 
-  if (!merged.developer_website_url) {
-    const lu = await lookupFromiTunes(appId);
-    if (lu?.developerWebsiteUrl) merged.developer_website_url = lu.developerWebsiteUrl;
-  }
-
-  // merge sources (dedupe by URL)
+  // merge/dedupe sources
   const srcs = new Map((merged.sources || []).map(s => [s.url, s]));
-  for (const s of (cached.sources || [])) {
-    if (s?.url) srcs.set(s.url, s);
-  }
+  for (const s of (cached.sources || [])) if (s?.url) srcs.set(s.url, s);
   merged.sources = Array.from(srcs.values());
 
   if (!merged.tracking_summary && merged.privacy_labels) {
@@ -132,63 +103,52 @@ async function mergePrivacy(app) {
   return merged;
 }
 
-function uniqueByAppIdOrKey(apps) {
-  // Prefer app_id; fall back to name|developer
-  const keyFor = a => a.app_id ? `id:${a.app_id}` : `nk:${(a.name||"").toLowerCase()}|${(a.developer||"").toLowerCase()}`;
-  const map = new Map();
-  for (const a of apps) {
-    const k = keyFor(a);
-    if (!map.has(k)) map.set(k, a);
-  }
-  return Array.from(map.values());
-}
-
 async function main() {
   console.log("== FiosFon updater (charts → scrape) ==");
 
   await ensureDir(CACHE_DIR);
+  const GENRE_GAMES = 6014;
 
-  // 1) Pull today’s charts
+  // 1) fetch fresh charts
   const [free, paid, games] = await Promise.all([
-    fetchChart("topfreeapplications"),
-    fetchChart("toppaidapplications"),
-    fetchChart("topfreeapplications", { genre: GENRE_GAMES })
+    fetchRss("topfreeapplications", 50),
+    fetchRss("toppaidapplications", 50),
+    fetchRss("topfreeapplications", 50, GENRE_GAMES)
   ]);
+  console.log(`Fetched charts: free=${free.length}, paid=${paid.length}, games=${games.length}`);
 
-  // 2) Combine (union) and keep uniqueness
-  let combined = uniqueByAppIdOrKey([
-    ...free.apps,
-    ...paid.apps,
-    ...games.apps
-  ]);
+  // 2) combine unique by (name+dev)
+  const pool = [...free, ...paid, ...games];
+  const seen = new Set();
+  const unique = [];
+  for (const a of pool) {
+    const k = keyNameDev(a);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    unique.push(a);
+  }
+  console.log(`Combined unique apps to process: ${unique.length}`);
 
-  // Optional limiter for faster tests
-  const max = Number.isFinite(+process.env.TEST_N) ? Math.max(0, +process.env.TEST_N) : null;
-  if (max) combined = combined.slice(0, max);
-
-  console.log(`Fetched charts: free=${free.apps.length}, paid=${paid.apps.length}, games=${games.apps.length}`);
-  console.log(`Combined unique apps to process: ${combined.length}`);
-
-  // 3) Scrape/merge privacy for each app
+  // 3) scrape privacy for each (sequential to be gentle)
   const out = [];
-  for (const app of combined) {
-    if (!app.app_id) {
-      out.push(app);
-      continue;
-    }
-    console.log(`• ${app.name} (${app.app_id})`);
+  let n = 0;
+  for (const app of unique) {
+    const idx = ++n;
+    const idCandidate = (app.sources?.length ? idFromUrl(app.sources[0].url) : null) || app.app_id || "";
+    console.log(`• ${app.name} (${idCandidate || "no-id"})`);
     out.push(await mergePrivacy(app));
+    await sleep(300); // tiny delay
   }
 
-  // 4) Write apps.json in the site’s format the frontend expects { as_of, apps }
+  // 4) write apps.json in our simple format
   const result = { as_of: new Date().toISOString().slice(0, 10), apps: out };
   await writeJson(APPS_JSON, result);
   console.log("Wrote", APPS_JSON);
-  console.log("== Done ==");
+  console.log("== FiosFon updater done ==");
 }
 
 if (process.env.NODE_ENV !== "test") {
-  main().catch(err => {
+  main().catch((err) => {
     console.error(err);
     process.exit(1);
   });
