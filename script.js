@@ -30,11 +30,11 @@ const DEFAULT_ICON =
    Helpers
    ========================= */
 async function loadJSON(path){
-  const url = new URL(path, document.baseURI).toString();
-  const res = await fetch(url, { cache: 'no-store' });
+  const url = new URL(path, document.baseURI);
+  url.searchParams.set('v', Date.now().toString());
+  const res = await fetch(url.toString(), { cache: 'no-store' });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-  const text = await res.text();
-  try { return JSON.parse(text); } catch(e){ throw new Error(`Invalid JSON in ${url}: ${e.message}`); }
+  return await res.json();
 }
 async function getCached(key, loader, ttlMs = CACHE_TTL_MS){
   const k = 'ff-cache:'+key;
