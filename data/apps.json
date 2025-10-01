@@ -12,20 +12,107 @@
         "May process photos you upload for enhancement (on-device/server)"
       ],
       "privacy_labels": {
-        "Data Linked to You": [
+        "Data Used to Track You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "Bending Spoons Apps ApS",
           "Identifiers",
+          "Contact Info",
+          "User Content",
           "Usage Data",
           "Diagnostics",
+          "Learn More"
+        ],
+        "Data Linked to You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "Bending Spoons Apps ApS",
+          "Identifiers",
+          "Contact Info",
           "User Content",
-          "Purchases"
+          "Usage Data",
+          "Diagnostics",
+          "Learn More"
+        ],
+        "Data Not Linked to You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "Bending Spoons Apps ApS",
+          "Identifiers",
+          "Contact Info",
+          "User Content",
+          "Usage Data",
+          "Diagnostics",
+          "Learn More"
         ]
       },
       "sources": [
         {
           "label": "App Store (IE)",
           "url": "https://apps.apple.com/ie/app/remini-ai-photo-enhancer/id1470373330"
+        },
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/id1470373330"
         }
-      ]
+      ],
+      "privacy_details": {
+        "App Privacy\n    \n\n    \n    See Details": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Bending Spoons Apps ApS": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Identifiers": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Contact Info": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "User Content": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Usage Data": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Diagnostics": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Learn More": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        }
+      },
+      "privacy_policy_url": "https://bendingspoons.com/privacy.html?app=1470373330",
+      "developer_website_url": "https://remini.ai/"
     },
     {
       "rank": 2,
@@ -37,21 +124,125 @@
         "Contact info, identifiers, usage data may be collected for account/services/ads"
       ],
       "privacy_labels": {
-        "Data Linked to You": [
-          "Contact Info",
-          "Identifiers",
-          "Purchases",
+        "Data Used to Track You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "Vinted Limited",
           "Usage Data",
+          "Purchases",
+          "Contact Info",
           "User Content",
-          "Location"
-        ]
+          "Browsing/Search History",
+          "Identifiers",
+          "Diagnostics",
+          "Other Data",
+          "Learn More"
+        ],
+        "Data Linked to You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "Vinted Limited",
+          "Usage Data",
+          "Purchases",
+          "Contact Info",
+          "User Content",
+          "Browsing/Search History",
+          "Identifiers",
+          "Diagnostics",
+          "Other Data",
+          "Learn More"
+        ],
+        "Data Not Linked to You": []
       },
       "sources": [
         {
           "label": "App Store (IE)",
           "url": "https://apps.apple.com/ie/app/vinted/id632064380"
+        },
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/id632064380"
         }
-      ]
+      ],
+      "privacy_details": {
+        "App Privacy\n    \n\n    \n    See Details": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Vinted Limited": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Usage Data": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Purchases": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Contact Info": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "User Content": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Browsing/Search History": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Identifiers": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Diagnostics": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Other Data": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Learn More": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        }
+      },
+      "privacy_policy_url": "https://www.vinted.co.uk/privacy-policy",
+      "developer_website_url": "https://vinted.co.uk/"
     },
     {
       "rank": 3,
@@ -63,27 +254,137 @@
         "Identifiers & usage data may be collected; interactions may improve AI services"
       ],
       "privacy_labels": {
+        "Data Used to Track You": [],
         "Data Linked to You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "Google",
           "Purchases",
-          "Location",
-          "Contacts",
-          "Search History",
-          "Identifiers",
-          "Diagnostics",
           "Financial Info",
+          "Location",
           "Contact Info",
+          "Contacts",
           "User Content",
-          "Browsing History",
+          "Browsing/Search History",
+          "Identifiers",
           "Usage Data",
-          "Other Data"
-        ]
+          "Diagnostics",
+          "Other Data",
+          "Learn More"
+        ],
+        "Data Not Linked to You": []
       },
       "sources": [
         {
           "label": "App Store (IE)",
           "url": "https://apps.apple.com/ie/app/google-gemini/id284815942"
+        },
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/id284815942"
         }
-      ]
+      ],
+      "privacy_details": {
+        "App Privacy\n    \n\n    \n    See Details": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Google": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Purchases": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Financial Info": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Location": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Contact Info": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Contacts": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "User Content": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Browsing/Search History": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Identifiers": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Usage Data": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Diagnostics": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Other Data": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Learn More": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        }
+      },
+      "privacy_policy_url": "http://www.google.com/privacy",
+      "developer_website_url": "http://www.google.com/search/about"
     },
     {
       "rank": 4,
@@ -95,18 +396,89 @@
         "Usage data and identifiers may be collected; prompts may be used to improve services subject to settings"
       ],
       "privacy_labels": {
+        "Data Used to Track You": [],
         "Data Linked to You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "OpenAI",
+          "Contact Info",
+          "User Content",
           "Identifiers",
           "Usage Data",
-          "Diagnostics"
-        ]
+          "Diagnostics",
+          "Learn More"
+        ],
+        "Data Not Linked to You": []
       },
       "sources": [
         {
           "label": "App Store (IE)",
           "url": "https://apps.apple.com/ie/app/chatgpt/id6448311069"
+        },
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/id6448311069"
         }
-      ]
+      ],
+      "privacy_details": {
+        "App Privacy\n    \n\n    \n    See Details": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "OpenAI": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Contact Info": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "User Content": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Identifiers": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Usage Data": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Diagnostics": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Learn More": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        }
+      },
+      "privacy_policy_url": "https://openai.com/policies/privacy-policy",
+      "developer_website_url": "https://openai.com/chatgpt"
     },
     {
       "rank": 5,
@@ -118,20 +490,137 @@
         "Contact info, identifiers, diagnostics may be collected for functionality and security"
       ],
       "privacy_labels": {
-        "Data Linked to You": [
-          "Contact Info",
-          "User Content",
-          "Identifiers",
+        "Data Used to Track You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "Microsoft Corporation",
           "Usage Data",
-          "Diagnostics"
+          "Contact Info",
+          "Contacts",
+          "User Content",
+          "Browsing/Search History",
+          "Identifiers",
+          "Diagnostics",
+          "Location",
+          "Learn More"
+        ],
+        "Data Linked to You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "Microsoft Corporation",
+          "Usage Data",
+          "Contact Info",
+          "Contacts",
+          "User Content",
+          "Browsing/Search History",
+          "Identifiers",
+          "Diagnostics",
+          "Location",
+          "Learn More"
+        ],
+        "Data Not Linked to You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "Microsoft Corporation",
+          "Usage Data",
+          "Contact Info",
+          "Contacts",
+          "User Content",
+          "Browsing/Search History",
+          "Identifiers",
+          "Diagnostics",
+          "Location",
+          "Learn More"
         ]
       },
       "sources": [
         {
           "label": "App Store (IE)",
           "url": "https://apps.apple.com/ie/app/microsoft-outlook/id951937596"
+        },
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/id951937596"
         }
-      ]
+      ],
+      "privacy_details": {
+        "App Privacy\n    \n\n    \n    See Details": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Microsoft Corporation": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Usage Data": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Contact Info": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Contacts": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "User Content": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Browsing/Search History": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Identifiers": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Diagnostics": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Location": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Learn More": {
+          "tracked": true,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        }
+      },
+      "privacy_policy_url": "https://bit.ly/outlookprivacy",
+      "developer_website_url": "https://outlook.live.com/"
     },
     {
       "rank": 6,
@@ -143,18 +632,107 @@
         "Minimal data; device identifiers & diagnostics for security"
       ],
       "privacy_labels": {
+        "Data Used to Track You": [],
         "Data Linked to You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "Microsoft Corporation",
+          "Location",
+          "Contact Info",
+          "User Content",
           "Identifiers",
+          "Usage Data",
           "Diagnostics",
-          "Usage Data"
+          "Learn More"
+        ],
+        "Data Not Linked to You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "Microsoft Corporation",
+          "Location",
+          "Contact Info",
+          "User Content",
+          "Identifiers",
+          "Usage Data",
+          "Diagnostics",
+          "Learn More"
         ]
       },
       "sources": [
         {
           "label": "App Store (IE)",
           "url": "https://apps.apple.com/ie/app/microsoft-authenticator/id983156458"
+        },
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/id983156458"
         }
-      ]
+      ],
+      "privacy_details": {
+        "App Privacy\n    \n\n    \n    See Details": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Microsoft Corporation": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Location": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Contact Info": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "User Content": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Identifiers": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Usage Data": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Diagnostics": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Learn More": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": true,
+          "purposes": [],
+          "subtypes": []
+        }
+      },
+      "privacy_policy_url": "http://www.microsoft.com/privacystatement/en-us/WindowsAzureMulti-FactorAuthentication/Default.aspx",
+      "developer_website_url": "https://www.microsoft.com/authenticator"
     },
     {
       "rank": 7,
@@ -166,20 +744,105 @@
         "Contact info, content, identifiers and diagnostics may be collected"
       ],
       "privacy_labels": {
+        "Data Used to Track You": [],
         "Data Linked to You": [
+          "App Privacy\n    \n\n    \n    See Details",
+          "Microsoft Corporation",
+          "Location",
           "Contact Info",
+          "Contacts",
           "User Content",
           "Identifiers",
           "Usage Data",
-          "Diagnostics"
-        ]
+          "Diagnostics",
+          "Learn More"
+        ],
+        "Data Not Linked to You": []
       },
       "sources": [
         {
           "label": "App Store (IE)",
           "url": "https://apps.apple.com/ie/app/microsoft-teams/id1113153706"
+        },
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/id1113153706"
         }
-      ]
+      ],
+      "privacy_details": {
+        "App Privacy\n    \n\n    \n    See Details": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Microsoft Corporation": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Location": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Contact Info": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Contacts": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "User Content": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Identifiers": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Usage Data": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Diagnostics": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        },
+        "Learn More": {
+          "tracked": false,
+          "linked": true,
+          "notLinked": false,
+          "purposes": [],
+          "subtypes": []
+        }
+      },
+      "privacy_policy_url": "http://aka.ms/privacy",
+      "developer_website_url": "http://aka.ms/microsoftteams"
     },
     {
       "rank": 8,
@@ -191,19 +854,23 @@
         "Account info & usage data may be collected by your institution's Moodle instance"
       ],
       "privacy_labels": {
-        "Data Linked to You": [
-          "Contact Info",
-          "Identifiers",
-          "Usage Data",
-          "User Content"
-        ]
+        "Data Used to Track You": [],
+        "Data Linked to You": [],
+        "Data Not Linked to You": []
       },
       "sources": [
         {
           "label": "App Store (IE)",
           "url": "https://apps.apple.com/ie/app/moodle/id633359593"
+        },
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/id633359593"
         }
-      ]
+      ],
+      "privacy_details": {},
+      "privacy_policy_url": "https://stats.moodle.org/mod/page/view.php?id=32&forceview=1",
+      "developer_website_url": "https://stats.moodle.org/mod/page/view.php?id=32&forceview=1"
     },
     {
       "rank": 9,
@@ -215,20 +882,21 @@
         "Location (approx), identifiers, purchase history and usage data for offers/personalisation"
       ],
       "privacy_labels": {
-        "Data Linked to You": [
-          "Location",
-          "Purchases",
-          "Identifiers",
-          "Usage Data",
-          "Contact Info"
-        ]
+        "Data Used to Track You": [],
+        "Data Linked to You": [],
+        "Data Not Linked to You": []
       },
       "sources": [
         {
           "label": "App Store (IE)",
           "url": "https://apps.apple.com/ie/app/mcdonalds/id922103212"
+        },
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/id922103212"
         }
-      ]
+      ],
+      "privacy_details": {}
     },
     {
       "rank": 10,
@@ -240,19 +908,21 @@
         "Identifiers, usage data, purchases; advertising & personalisation"
       ],
       "privacy_labels": {
-        "Data Linked to You": [
-          "Identifiers",
-          "Purchases",
-          "Usage Data",
-          "Contact Info"
-        ]
+        "Data Used to Track You": [],
+        "Data Linked to You": [],
+        "Data Not Linked to You": []
       },
       "sources": [
         {
           "label": "App Store (IE)",
           "url": "https://apps.apple.com/ie/app/temu-shop-like-a-billionaire/id1641486559"
+        },
+        {
+          "label": "App Store (IE)",
+          "url": "https://apps.apple.com/ie/app/id1641486559"
         }
-      ]
+      ],
+      "privacy_details": {}
     }
   ]
 }
