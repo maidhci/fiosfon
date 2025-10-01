@@ -31,7 +31,7 @@ const DEFAULT_ICON =
    ========================= */
 async function loadJSON(path){
   const url = new URL(path, document.baseURI);
-  url.searchParams.set('v', Date.now().toString());
+  url.searchParams.set('v', Date.now().toString()); // cache-bust on GH Pages
   const res = await fetch(url.toString(), { cache: 'no-store' });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   return await res.json();
@@ -49,18 +49,35 @@ async function getCached(key, loader, ttlMs = CACHE_TTL_MS){
 function normaliseName(n){ return (n||'').toLowerCase().replace(/\s+/g,' ').trim(); }
 function appKey(a){ return `${normaliseName(a.name)}|${normaliseName(a.developer)}`; }
 
+/**
+ * Merge RSS apps with local privacy/extra fields.
+ * Prefer strong key: app_id, then name+developer, finally name-only.
+ */
 function mergeAppsByName(rssApps, localApps){
-  const map = new Map((localApps||[]).map(a => [normaliseName(a.name), a]));
-  return rssApps.map(r => {
-    const hit = map.get(normaliseName(r.name));
+  const byKey = new Map();
+  (localApps || []).forEach(a => {
+    const kFull = `${normaliseName(a.name)}|${normaliseName(a.developer)}`;
+    byKey.set(kFull, a);
+    // fallback: name-only
+    const kName = normaliseName(a.name);
+    if (!byKey.has(kName)) byKey.set(kName, a);
+    // strongest: app_id
+    if (a.app_id) byKey.set(`id:${a.app_id}`, a);
+  });
+
+  return (rssApps || []).map(r => {
+    const kFull = `${normaliseName(r.name)}|${normaliseName(r.developer)}`;
+    const hit = byKey.get(`id:${r.app_id}`) || byKey.get(kFull) || byKey.get(normaliseName(r.name));
     return hit ? {
       rank: r.rank, name: r.name, platform: 'iOS',
       developer: r.developer, icon: r.icon || hit.icon,
-      sources: r.sources?.length ? r.sources : hit.sources,
+      sources: (r.sources?.length ? r.sources : hit.sources) || [],
       tracking_summary: hit.tracking_summary,
       privacy_labels: hit.privacy_labels,
       privacy_details: hit.privacy_details,
-      privacy_policy_url: hit.privacy_policy_url
+      privacy_policy_url: hit.privacy_policy_url,
+      developer_website_url: hit.developer_website_url,
+      app_id: hit.app_id || r.app_id
     } : r;
   });
 }
@@ -99,7 +116,7 @@ async function findArtworkBySearch(name, developer){
   const hit = localStorage.getItem(cacheKey);
   if (hit) return hit;
   const q = encodeURIComponent(`${name} ${developer||''}`.trim());
-  const url = `https://itunes.apple.com/search?term=${q}&entity=software&country=${COUNTRY}&limit=3`;
+  const url = `https://itunes.apple.com/search?term=${q}&entity=software&country=${COUNTRY}&limit=${SEARCH_LIMIT}`;
   try{
     const res = await fetch(url);
     if(!res.ok) throw new Error('search http '+res.status);
@@ -131,8 +148,11 @@ async function liveSearchAllApps(query){
 }
 
 function viaProxy(u){
-  try{ const clean = u.replace(/^https?:\/\//,''); return `https://images.weserv.nl/?url=${encodeURIComponent(clean)}&w=100&h=100&fit=contain&we`; }
-  catch{ return u; }
+  try{
+    if (!u || u.startsWith('data:')) return u;
+    const clean = u.replace(/^https?:\/\//,'');
+    return `https://images.weserv.nl/?url=${encodeURIComponent(clean)}&w=100&h=100&fit=contain&we`;
+  } catch { return u; }
 }
 
 /* =========================
@@ -157,8 +177,6 @@ function closeDrawer(){ const d=document.getElementById('glossary-drawer'); cons
 /* =========================
    Risk meter (granular + purpose aware)
    ========================= */
-
-// Category weights (base)
 const RISK_WEIGHTS = {
   track: {
     "Identifiers": 12, "Location": 12, "Contact Info": 10, "Financial Info": 12,
@@ -180,7 +198,6 @@ const RISK_WEIGHTS = {
   }
 };
 
-// Purpose bonuses (added per category if present in privacy_details)
 const PURPOSE_BONUS = {
   "Advertising": 6,
   "Developer's Advertising": 4,
@@ -194,10 +211,9 @@ const PURPOSE_BONUS = {
 
 const SECTION_CAPS = { track: 70, linked: 50, notLinked: 20 };
 
-// Smooth mapping to 0–100 so most apps aren’t pegged at the top
 function smoothScale(x, max) {
   const t = Math.max(0, Math.min(1, x / max));
-  const k = 5; // curve steepness
+  const k = 5;
   const y = 1 / (1 + Math.exp(-k * (t - 0.5)));
   return y * 100;
 }
@@ -216,21 +232,13 @@ function computePrivacyScore(app){
     let sum = 0;
     set.forEach(cat => {
       let base = weights[cat] || 0;
-
-      // Purpose-aware boost if we have details for this category
       const det = details[cat];
       if (det && Array.isArray(det.purposes)) {
-        for (const p of det.purposes) {
-          base += (PURPOSE_BONUS[p] || 0);
-        }
-        // If the section is not "track" but detail says it's tracked, nudge up slightly
+        for (const p of det.purposes) base += (PURPOSE_BONUS[p] || 0);
         if (sectionName !== 'track' && det.tracked) base += 3;
       }
-
       sum += base;
     });
-
-    // Soft diminish returns and cap
     const softened = Math.sqrt(sum) * Math.sqrt(cap);
     return Math.min(softened, cap);
   };
@@ -324,13 +332,13 @@ function renderAppsInto(listEl, apps, context='board'){
     frag.querySelector('.name').textContent = app.name;
     const plat = frag.querySelector('.platform'); if (plat) plat.textContent = 'iOS';
 
-    // "Maker" label + developer
+    // Developer label + developer name
     const devEl = frag.querySelector('.developer');
     if (devEl) {
-      const maker = document.createElement('span');
-      maker.className = 'maker-label';
-      maker.textContent = 'Maker';
-      devEl.before(maker);
+      const devLabel = document.createElement('span');
+      devLabel.className = 'maker-label'; // reuse CSS class
+      devLabel.textContent = 'Developer';
+      devEl.before(devLabel);
       devEl.textContent = app.developer || '';
     }
 
@@ -478,9 +486,8 @@ function setupControls(){
 
       const srcLinks = (app.sources || []).map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Source'}</a>`).join(' · ');
       const policy = app.privacy_policy_url ? ` · <a href="${app.privacy_policy_url}" target="_blank" rel="noopener">Privacy Policy</a>` : '';
-      html += `<p class="muted small">Source: ${srcLinks || 'App Store listing'}${policy}</p>`;
-    } else {
-      html += `<p class="muted small">No app-specific detail yet for this category.</p>`;
+      const devSite = app.developer_website_url ? ` · <a href="${app.developer_website_url}" target="_blank" rel="noopener">Developer Website</a>` : '';
+      html += `<p class="muted small">Source: ${srcLinks || 'App Store listing'}${policy}${devSite}</p>`;
     }
 
     openDrawerHTML(term, html);
@@ -522,7 +529,14 @@ function setupControls(){
         const mapLocal = new Map((state.localApps||[]).map(a => [normaliseName(a.name), a]));
         const enriched = live.map(a => {
           const hit = mapLocal.get(normaliseName(a.name));
-          return hit ? { ...a, tracking_summary: hit.tracking_summary, privacy_labels: hit.privacy_labels, privacy_details: hit.privacy_details } : a;
+          return hit ? {
+            ...a,
+            tracking_summary: hit.tracking_summary,
+            privacy_labels: hit.privacy_labels,
+            privacy_details: hit.privacy_details,
+            privacy_policy_url: hit.privacy_policy_url,
+            developer_website_url: hit.developer_website_url
+          } : a;
         });
 
         const have = new Set(localCombined.map(appKey));
@@ -549,10 +563,10 @@ function setupControls(){
    ========================= */
 
 // Toggle: render from local apps.json only (set to false to use Apple RSS)
-const USE_LOCAL_ONLY = false;
+const USE_LOCAL_ONLY = false; // ← live mode
 
 async function loadBoards(){
-  // Load local dataset
+  // Load local dataset (for enrichment + fallback)
   let local = { apps: [], as_of: '' };
   try { local = await loadJSON('data/apps.json'); } catch {}
   state.localApps = local.apps || [];
