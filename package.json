@@ -2,12 +2,12 @@
   "name": "fiosfon",
   "version": "1.0.0",
   "type": "module",
+  "private": true,
   "scripts": {
-    "update:apps": "node scripts/update-apps.mjs"
+    "update:apps": "node scripts/update-apps.mjs",
+    "debug:scrape": "node scripts/debug-scrape.mjs"
   },
   "dependencies": {
-    "p-limit": "^5.0.0",
-    "puppeteer": "^22.15.0",
-    "node-html-parser": "^6.1.11"
+    "puppeteer": "^24.10.2"
   }
 }
