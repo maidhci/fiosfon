@@ -435,6 +435,24 @@ if (app.sources && app.sources.length){
   sources.innerHTML = '';
 }
 
+     const sources = frag.querySelector('.sources');
+const shareBtn = frag.querySelector('.share-btn');
+
+if (app.sources && app.sources.length){
+  sources.innerHTML =
+    `<strong>Sources:</strong> ` +
+    app.sources.map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Link'}</a>`).join(' ');
+} else {
+  sources.innerHTML = '';
+}
+
+if (shareBtn) {
+  shareBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    shareApp(app);
+  });
+}
+
 // Wire up share
 if (shareBtn) {
   shareBtn.addEventListener('click', async (e) => {
