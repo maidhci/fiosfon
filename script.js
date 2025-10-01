@@ -58,10 +58,8 @@ function mergeAppsByName(rssApps, localApps){
   (localApps || []).forEach(a => {
     const kFull = `${normaliseName(a.name)}|${normaliseName(a.developer)}`;
     byKey.set(kFull, a);
-    // fallback: name-only
     const kName = normaliseName(a.name);
     if (!byKey.has(kName)) byKey.set(kName, a);
-    // strongest: app_id
     if (a.app_id) byKey.set(`id:${a.app_id}`, a);
   });
 
@@ -82,8 +80,9 @@ function mergeAppsByName(rssApps, localApps){
   });
 }
 
+/* ===== Sharing helpers ===== */
+
 function appPermalink(app) {
-  // simplest: current page + app name param (works even if we don’t parse it)
   const u = new URL(location.href);
   u.searchParams.set('app', app.name);
   return u.toString();
@@ -105,24 +104,12 @@ async function shareApp(app) {
     `${app.name} by ${app.developer || 'Developer'}\n` +
     `See data types (linked/track) and the collection intensity meter.`;
 
-  // Web Share API (mobile & some desktop)
   if (navigator.share) {
-    try {
-      await navigator.share({ title, text, url });
-      return;
-    } catch (err) {
-      // user cancelled or API not available — fall through to copy
-    }
+    try { await navigator.share({ title, text, url }); return; }
+    catch { /* cancelled – fall through */ }
   }
-
-  // Fallback: copy URL to clipboard
-  try {
-    await navigator.clipboard.writeText(url);
-    showToast('Link copied');
-  } catch {
-    // Last-resort fallback: open the native prompt
-    window.prompt('Copy this link:', url);
-  }
+  try { await navigator.clipboard.writeText(url); showToast('Link copied'); }
+  catch { window.prompt('Copy this link:', url); }
 }
 
 /* =========================
@@ -303,26 +290,17 @@ function computePrivacyScore(app){
 function renderRiskMeter(containerEl, app){
   const { score, band } = computePrivacyScore(app);
   const pct = Math.max(0, Math.min(100, score)); // 0..100
-
-  const bandClass =
-    band === "High" ? "high" :
-    band === "Medium" ? "med" : "low";
+  const bandClass = band === "High" ? "high" : (band === "Medium" ? "med" : "low");
 
   containerEl.innerHTML = `
     <div class="risk-label">
       Data collection intensity
       <span class="risk-badge ${bandClass}">${band}</span>
     </div>
-
-    <div class="risk-track" role="img"
-         aria-label="Data collection intensity ${Math.round(pct)} out of 100">
-      <div class="risk-marker" style="left:${pct}%"
-           title="${Math.round(pct)}/100"></div>
+    <div class="risk-track" role="img" aria-label="Data collection intensity ${Math.round(pct)} out of 100">
+      <div class="risk-marker" style="left:${pct}%;" title="${Math.round(pct)}/100"></div>
     </div>
-
-    <div class="risk-scale">
-      <span>low</span><span>medium</span><span>high</span>
-    </div>
+    <div class="risk-scale"><span>low</span><span>medium</span><span>high</span></div>
   `;
 }
 
@@ -369,6 +347,7 @@ function renderAppsInto(listEl, apps, context='board'){
   if (!listEl) return;
   listEl.innerHTML = '';
   const tpl = document.getElementById('app-card-tpl');
+
   apps.forEach((app, idx) => {
     const frag = tpl.content.cloneNode(true);
     const root = frag.querySelector('.app-card') || frag.firstElementChild;
@@ -380,9 +359,8 @@ function renderAppsInto(listEl, apps, context='board'){
     resolveIcon(iconEl, app);
 
     // Rank text
-    let rankText = '';
     const hasRealRank = Number.isFinite(app.rank);
-    rankText = (context === 'board') ? `#${hasRealRank ? app.rank : (idx+1)}` : (hasRealRank ? `#${app.rank}` : '');
+    const rankText = (context === 'board') ? `#${hasRealRank ? app.rank : (idx+1)}` : (hasRealRank ? `#${app.rank}` : '');
     frag.querySelector('.rank').textContent = rankText;
 
     // Name + platform
@@ -423,51 +401,26 @@ function renderAppsInto(listEl, apps, context='board'){
     const riskEl = frag.querySelector('.risk');
     if (riskEl) renderRiskMeter(riskEl, app);
 
-    // Sources
+    // Sources + Share button
     const sources = frag.querySelector('.sources');
-const shareBtn = frag.querySelector('.share-btn');
+    const shareBtn = frag.querySelector('.share-btn');
 
-if (app.sources && app.sources.length){
-  sources.innerHTML =
-    `<strong>Sources:</strong> ` +
-    app.sources.map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Link'}</a>`).join(' ');
-} else {
-  sources.innerHTML = '';
-}
-
-     const sources = frag.querySelector('.sources');
-const shareBtn = frag.querySelector('.share-btn');
-
-if (app.sources && app.sources.length){
-  sources.innerHTML =
-    `<strong>Sources:</strong> ` +
-    app.sources.map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Link'}</a>`).join(' ');
-} else {
-  sources.innerHTML = '';
-}
-
-if (shareBtn) {
-  shareBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    shareApp(app);
-  });
-}
-
-// Wire up share
-if (shareBtn) {
-  shareBtn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    const payload = buildSharePayload(app);
-
-    if (navigator.share) {
-      try {
-        await navigator.share(payload);
-        return;
-      } catch (err) {
-        // cancelled / not supported, fallback
-      }
+    if (app.sources && app.sources.length){
+      sources.innerHTML =
+        `<strong>Sources:</strong> ` +
+        app.sources.map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Link'}</a>`).join(' ');
+    } else {
+      sources.innerHTML = '';
     }
-    showShareMenu(shareBtn, app);
+
+    if (shareBtn) {
+      shareBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        shareApp(app);
+      });
+    }
+
+    listEl.appendChild(frag);
   });
 }
 
@@ -538,7 +491,7 @@ function setupControls(){
   document.getElementById('drawer-backdrop')?.addEventListener('click', closeDrawer);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
-  // Glossary chip clicks -> open drawer with definition + app-specific details (if available)
+  // Glossary chip clicks -> open drawer with definition + app-specific details
   document.body.addEventListener('click', async (e) => {
     const liChip = e.target.closest('.privacy li');
     if (!liChip) return;
@@ -673,7 +626,6 @@ async function loadBoards(){
     return;
   }
 
-  // Normal path: fetch Apple RSS and enrich with local privacy labels
   const safeFetch = async (key, fn) => {
     try { return await getCached(key, fn); }
     catch(e){ console.warn('RSS failed:', e.message); return { as_of: '', apps: [] }; }
@@ -708,7 +660,6 @@ async function init(forceRefresh=false){
     await loadBoards();
   } catch(err){
     console.error('Failed to load boards:', err);
-    // last-resort fallback to local only
     ['free','paid','games'].forEach(k => {
       state.boards[k].apps = state.localApps;
       state.boards[k].asOf = state.boards[k].asOf || '';
