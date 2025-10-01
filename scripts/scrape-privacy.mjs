@@ -1,81 +1,38 @@
 import puppeteer from "puppeteer";
 
-const WAIT_MS = 20000;
+const TIMEOUT_MS = 45000;
+const UA_FALLBACK =
+  process.env.USER_AGENT ||
+  // Realistic Safari UA helps avoid blocks:
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15";
 
-// Known Apple privacy categories (keep only these)
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Keep only Apple's official categories */
 const ALLOWED = new Set([
-  "Contact Info",
-  "Health & Fitness",
-  "Financial Info",
-  "Location",
-  "Sensitive Info",
-  "Contacts",
-  "User Content",
-  "Browsing/Search History",
-  "Identifiers",
-  "Purchases",
-  "Usage Data",
-  "Diagnostics",
-  "Other Data"
+  "Contact Info","Health & Fitness","Financial Info","Location","Sensitive Info",
+  "User Content","Identifiers","Purchases","Usage Data","Diagnostics","Contacts",
+  "Search History","Browsing History","Browsing/Search History","Audio Data",
+  "Photos or Videos","Messages","Other Data","Other Data Types","Customer Support",
+  "Name"
 ]);
 
-// Normalise minor wording differences into our canonical labels
-function normaliseCategory(s) {
-  const t = s.trim()
-    .replace(/\s+/g, " ")
-    .replace(/\u00A0/g, " "); // nbsp
-
-  const lower = t.toLowerCase();
-
-  // Common variants seen on the App Store
-  if (lower === "photos and videos") return "Photos or Videos"; // (we don't currently include this in ALLOWED; keep mapping here if you later add it)
-  if (lower === "photos or videos") return "Photos or Videos";
-  if (lower === "search history") return "Browsing/Search History";
-  if (lower === "browsing history") return "Browsing/Search History";
-  if (lower === "customer support") return "Other Data";
-
-  // Return original (capitalisation fixed) if it matches an allowed one
-  // Capitalise words properly
-  const cased = t
-    .split(" ")
-    .map(w => (w.length ? w[0].toUpperCase() + w.slice(1) : w))
-    .join(" ");
-
-  return cased;
-}
-
-function cleanTokens(tokens, developerName = "") {
-  const dev = (developerName || "").toLowerCase();
+function cleanTokens(tokens) {
   const out = [];
-  for (let raw of tokens) {
-    if (!raw) continue;
-    let s = raw.replace(/\u00A0/g, " ").trim();
-
-    // Drop obvious noise
-    const noise =
-      /^(app privacy|see details|learn more|privacy policy|more|details)$/i;
-    if (noise.test(s)) continue;
-
-    // Drop bare developer name or lines that are just the dev
-    if (dev && s.toLowerCase() === dev) continue;
-
-    // Toss very long strings (they’re not chips)
-    if (s.length > 40) continue;
-
-    // Normalise & keep only if in our allow-list
-    const norm = normaliseCategory(s);
-
-    // Some categories we normalise to labels not currently in ALLOWED;
-    // If you want them, add to ALLOWED above.
-    if (ALLOWED.has(norm)) out.push(norm);
+  for (const raw of tokens) {
+    const t = (raw || "").replace(/\s+/g, " ").trim();
+    if (!t) continue;
+    if (/^app privacy$/i.test(t)) continue;
+    if (/^see details$/i.test(t)) continue;
+    if (/^learn more$/i.test(t)) continue;
+    if (t.length > 40) continue;
+    if (ALLOWED.has(t)) out.push(t);
   }
-
-  // Dedupe while preserving order
   return Array.from(new Set(out));
 }
 
-async function delay(ms) {
-  return new Promise(res => setTimeout(res, ms));
+function textIncludes(el, needle) {
+  return ((el?.textContent || el?.innerText || "").toLowerCase().includes(needle));
 }
 
 export async function scrapePrivacyForApp(appId) {
@@ -87,105 +44,137 @@ export async function scrapePrivacyForApp(appId) {
 
   try {
     const page = await browser.newPage();
-    await page.setUserAgent(process.env.USER_AGENT || "FiosFonBot/1.0");
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: WAIT_MS });
+    await page.setUserAgent(UA_FALLBACK);
 
-    // Nudge page so privacy section mounts
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: TIMEOUT_MS });
+    // Nudge the SPA to render the privacy section
+    await sleep(1200);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.5));
-    await delay(1200);
+    await sleep(1000);
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.8));
+    await sleep(800);
 
-    const devName = await page.evaluate(() => {
-      // Try to read the developer name from the header area
-      const dev =
-        document.querySelector('[data-test-we-artist-link]') ||
-        document.querySelector('a[href*="developer"]') ||
-        document.querySelector('h2 ~ a') ||
-        document.querySelector('header a');
+    const scraped = await page.evaluate((allowedList) => {
+      const byText = (needle) => {
+        needle = needle.toLowerCase();
+        const all = Array.from(document.querySelectorAll("h1,h2,h3,h4,section,div,span"));
+        return all.find((el) => (el.textContent || "").trim().toLowerCase() === needle) || null;
+      };
 
-      return (dev?.textContent || "").trim();
-    });
+      const nearestSectionFor = (headerEl) => {
+        if (!headerEl) return null;
+        const sec = headerEl.closest("section");
+        return sec || headerEl.parentElement || headerEl;
+      };
 
-    const data = await page.evaluate(() => {
-      // Grab lots of small text nodes in the privacy area
-      // (DOM changes often; we’ll filter on the Node side)
-      function pickText(el) {
-        return (el?.textContent || "")
-          .replace(/\u00A0/g, " ")
-          .trim();
-      }
-
-      // Collect texts near headings that look like the three buckets
-      const titles = [
-        "Data Used to Track You",
-        "Data Linked to You",
-        "Data Not Linked to You"
-      ];
-
-      // Try to find blocks per title; fall back to scanning the page
-      function findSectionTexts(title) {
-        const all = Array.from(document.querySelectorAll("h2, h3, h4, section, div"));
-        const h = all.find(n => pickText(n).toLowerCase() === title.toLowerCase());
-        const scope = h ? (h.closest("section") || h.parentElement || h) : document;
-        // Collect likely chip texts under that scope
-        const chips = Array.from(scope.querySelectorAll("li, span, div, a, p"))
-          .map(pickText)
-          .map(s => s.replace(/\s+/g, " "))
+      const harvest = (container) => {
+        if (!container) return [];
+        const chips = Array.from(container.querySelectorAll("li, span, div, a"))
+          .map((el) => (el.textContent || "").trim())
           .filter(Boolean);
+        // Filter later in Node using allowed set
         return chips;
-      }
+      };
 
-      const res = {};
-      for (const t of titles) {
-        res[t] = findSectionTexts(t);
-      }
+      const sections = {
+        track: nearestSectionFor(byText("Data Used to Track You")),
+        linked: nearestSectionFor(byText("Data Linked to You")),
+        notLinked: nearestSectionFor(byText("Data Not Linked to You"))
+      };
 
-      // Also try to read the Privacy Policy link
-      const policyEl =
-        document.querySelector('a[href*="privacy"]') ||
-        document.querySelector('a[aria-label*="Privacy"]');
-      const policy = policyEl ? policyEl.href : null;
+      const rawLabels = {
+        "Data Used to Track You": harvest(sections.track),
+        "Data Linked to You": harvest(sections.linked),
+        "Data Not Linked to You": harvest(sections.notLinked)
+      };
 
-      // Try to read developer website link
-      const devSiteEl =
-        document.querySelector('a[href*="http"]a[href*="developer"]') ||
-        document.querySelector('a[href*="seller"]') ||
-        document.querySelector('[data-test-we-artist-link]');
+      // Try to find "Privacy Policy" and "Developer Website" links
+      const anchors = Array.from(document.querySelectorAll("a"));
+      const findLink = (substr) => {
+        substr = substr.toLowerCase();
+        const hit = anchors.find(
+          (a) =>
+            (a.textContent || a.ariaLabel || "").toLowerCase().includes(substr)
+        );
+        return hit?.href || null;
+      };
 
-      const devSite = devSiteEl ? devSiteEl.href : null;
+      const privacyPolicyUrl =
+        findLink("privacy policy") ||
+        anchors.find(a => /privacy/i.test(a.href))?.href ||
+        null;
+
+      const developerWebsiteUrl =
+        findLink("developer website") ||
+        anchors.find(a => /developer/i.test(a.textContent || ""))?.href ||
+        null;
+
+      // Collect “purposes” if Apple shows them inline (varies)
+      const purposeMap = {};
+      const purposeBlocks = Array.from(document.querySelectorAll("section,div"));
+      purposeBlocks.forEach((blk) => {
+        const t = (blk.textContent || "").toLowerCase();
+        if (!/app privacy|data used|data linked|data not linked/.test(t)) return;
+
+        const catChips = Array.from(blk.querySelectorAll("li,span,div"))
+          .map((n) => (n.textContent || "").trim())
+          .filter(Boolean);
+        const cats = Array.from(new Set(catChips));
+        let purposes = [];
+        if (/advertis(ing|ements)/i.test(t)) purposes.push("Advertising");
+        if (/personalization|personalisation/i.test(t)) purposes.push("Personalization");
+        if (/analytics/i.test(t)) purposes.push("Analytics");
+        if (/fraud/i.test(t)) purposes.push("Fraud Prevention");
+        if (/functionality|app function/i.test(t)) purposes.push("App Functionality");
+
+        cats.forEach((c) => {
+          if (!purposeMap[c]) purposeMap[c] = new Set();
+          purposes.forEach((p) => purposeMap[c].add(p));
+        });
+      });
 
       return {
-        raw: res,
-        privacy_policy_url: policy,
-        developer_website_url: devSite
+        rawLabels,
+        privacyPolicyUrl,
+        developerWebsiteUrl,
+        purposeMap: Object.fromEntries(
+          Object.entries(purposeMap).map(([k, v]) => [k, Array.from(v)])
+        )
       };
-    });
+    }, Array.from(ALLOWED));
 
-    // Clean sections using whitelist + normalisation
+    // Clean and normalize
     const cleaned = {};
-    for (const [bucket, tokens] of Object.entries(data.raw || {})) {
-      cleaned[bucket] = cleanTokens(tokens, devName);
+    for (const [k, arr] of Object.entries(scraped.rawLabels || {})) {
+      cleaned[k] = cleanTokens(arr || []);
     }
 
-    // Build final object
-    const privacy_labels = {
-      "Data Used to Track You": cleaned["Data Used to Track You"] || [],
-      "Data Linked to You": cleaned["Data Linked to You"] || [],
-      "Data Not Linked to You": cleaned["Data Not Linked to You"] || []
-    };
+    // Build per-category flags (tracked/linked/notLinked)
+    const allCats = new Set([
+      ...(cleaned["Data Used to Track You"] || []),
+      ...(cleaned["Data Linked to You"] || []),
+      ...(cleaned["Data Not Linked to You"] || [])
+    ]);
 
-    // Placeholder – we can later enrich this with per-category purposes/subtypes
-    const privacy_details = {}; // keep for future
+    const privacy_details = {};
+    for (const cat of allCats) {
+      privacy_details[cat] = {
+        tracked: (cleaned["Data Used to Track You"] || []).includes(cat) || false,
+        linked: (cleaned["Data Linked to You"] || []).includes(cat) || false,
+        notLinked: (cleaned["Data Not Linked to You"] || []).includes(cat) || false,
+        subtypes: [],
+        purposes: scraped.purposeMap?.[cat] || []
+      };
+    }
 
-    const out = {
+    return {
       as_of: new Date().toISOString(),
-      privacy_labels,
+      privacy_labels: cleaned,
       privacy_details,
-      privacy_policy_url: data.privacy_policy_url || null,
-      developer_website_url: data.developer_website_url || null,
+      privacy_policy_url: scraped.privacyPolicyUrl || null,
+      developer_website_url: scraped.developerWebsiteUrl || null,
       sources: [{ label: "App Store (IE)", url }]
     };
-
-    return out;
   } finally {
     await browser.close();
   }
