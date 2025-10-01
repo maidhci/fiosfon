@@ -1,7 +1,7 @@
 name: Update apps & privacy data
 
 on:
-  workflow_dispatch:   # allow manual runs
+  workflow_dispatch:   # manual runs
   schedule:
     - cron: "0 3 * * *"   # run daily at 03:00 UTC
 
@@ -13,7 +13,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # so we can rebase/push safely
+          fetch-depth: 0   # full history so we can rebase/push
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
