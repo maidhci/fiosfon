@@ -10,16 +10,15 @@
 <body>
   <header class="site-header">
     <div class="wrap">
+      <!-- SVG logo -->
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="28" height="28" class="logo" aria-hidden="true">
+        <rect x="10" y="4" width="28" height="40" rx="4" fill="#023047"/>
+        <rect x="13" y="7" width="22" height="34" rx="2" fill="#ffffff"/>
+        <ellipse cx="24" cy="24" rx="7" ry="5" fill="#ffb703"/>
+        <circle cx="24" cy="24" r="2.5" fill="#023047"/>
+      </svg>
       <h1>FiosFón <span class="badge">BETA</span></h1>
       <nav>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="32" height="32">
-  <!-- Phone outline -->
-  <rect x="10" y="4" width="28" height="40" rx="4" fill="#023047"/>
-  <rect x="13" y="7" width="22" height="34" rx="2" fill="#fff"/>
-  <!-- Eye symbol -->
-  <ellipse cx="24" cy="24" rx="7" ry="5" fill="#ffb703"/>
-  <circle cx="24" cy="24" r="2.5" fill="#023047"/>
-</svg>
         <a href="#boards">Top Charts</a>
         <a href="#search">Search</a>
         <a href="#rights">Your Rights</a>
@@ -28,26 +27,26 @@
   </header>
 
   <main class="wrap">
- <section id="intro" class="intro">
-  <h2>What do your iOS apps collect about you?</h2>
-  <p>
-    FiosFón shows what popular iOS apps in Ireland collect and how they use your data.
-    Explore the top charts or search any app to see privacy labels, data types,
-    and a simple risk meter.
-  </p>
-  <details>
-    <summary>Learn more</summary>
-    <p>
-      Tap any data-type chip (e.g. <em>Identifiers</em>, <em>Purchases</em>) for plain-English
-      definitions plus app-specific details such as purposes (Advertising, Analytics, Functionality).
-      Charts refresh automatically from Apple’s public feeds; search can look beyond the top charts.
-    </p>
-    <p class="muted small">
-      This is guidance only and not legal advice. Always review the developer’s privacy policy
-      and your in-app settings.
-    </p>
-  </details>
-</section>
+    <section id="intro" class="intro">
+      <h2>What do your iOS apps collect about you?</h2>
+      <p>
+        FiosFón shows what popular iOS apps in Ireland collect and how they use your data.
+        Explore the top charts or search any app to see privacy labels, data types,
+        and a simple risk meter.
+      </p>
+      <details>
+        <summary>Learn more</summary>
+        <p>
+          Tap any data-type chip (e.g. <em>Identifiers</em>, <em>Purchases</em>) for plain-English
+          definitions plus app-specific details such as purposes (Advertising, Analytics, Functionality).
+          Charts refresh automatically from Apple’s public feeds; search can look beyond the top charts.
+        </p>
+        <p class="muted small">
+          This is guidance only and not legal advice. Always review the developer’s privacy policy
+          and your in-app settings.
+        </p>
+      </details>
+    </section>
 
     <!-- Three-column boards -->
     <section id="boards" class="boards">
@@ -165,9 +164,9 @@
         <div class="privacy"></div>
         <div class="risk"></div>
         <div class="sources-row">
-  <div class="sources"></div>
-  <button class="share-btn" type="button" aria-label="Share this app">Share</button>
-</div>
+          <div class="sources"></div>
+          <button class="share-btn" type="button" aria-label="Share this app">Share</button>
+        </div>
       </details>
     </li>
   </template>
