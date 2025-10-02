@@ -22,6 +22,8 @@ const COUNTRY = 'ie';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const SEARCH_LIMIT = 25;
 const RANGES = [[0,10],[10,20],[20,30],[30,40],[40,50]];
+// Always show the three chip sections even when empty
+const ALWAYS_SHOW_SECTIONS = true;
 
 const DEFAULT_ICON =
   'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="18" fill="%238ecae6"/><circle cx="24" cy="26" r="6" fill="%23ffb703"/><rect x="18" y="52" width="60" height="10" rx="5" fill="%23023047"/><rect x="18" y="68" width="48" height="10" rx="5" fill="%23219ebc"/></svg>';
@@ -188,6 +190,79 @@ function viaProxy(u){
     const clean = u.replace(/^https?:\/\//,'');
     return `https://images.weserv.nl/?url=${encodeURIComponent(clean)}&w=100&h=100&fit=contain&we`;
   } catch { return u; }
+}
+
+// Apple's standard category names we want to show as chips
+const VALID_CATEGORIES = new Set([
+  "Contact Info","Identifiers","User Content","Usage Data","Diagnostics",
+  "Location","Purchases","Financial Info","Health & Fitness","Sensitive Info",
+  "Browsing History","Search History","Contacts","Messages","Photos or Videos",
+  "Audio Data","Other Data","Education","Fitness"
+]);
+
+/**
+ * Build the three sections from the richest source available:
+ *  - Prefer privacy_details (per-category flags), else fall back to privacy_labels.
+ *  - Whitelist categories and dedupe with priority: track > linked > notLinked.
+ */
+function buildChipSections(app){
+  const details = app.privacy_details || {};
+  const labels  = app.privacy_labels  || {};
+
+  // Start with empty sets to dedupe
+  const track = new Set(), linked = new Set(), notLinked = new Set();
+
+  // 1) Use details if present
+  const detailKeys = Object.keys(details || {});
+  if (detailKeys.length) {
+    for (const cat of detailKeys) {
+      if (!VALID_CATEGORIES.has(cat)) continue;
+      const d = details[cat] || {};
+      if (d.tracked)      track.add(cat);
+      else if (d.linked)  linked.add(cat);
+      else if (d.notLinked) notLinked.add(cat);
+    }
+  } else {
+    // 2) Fall back to labels
+    for (const cat of labels["Data Used to Track You"] || []) if (VALID_CATEGORIES.has(cat)) track.add(cat);
+    for (const cat of labels["Data Linked to You"]      || []) if (VALID_CATEGORIES.has(cat)) linked.add(cat);
+    for (const cat of labels["Data Not Linked to You"]  || []) if (VALID_CATEGORIES.has(cat)) notLinked.add(cat);
+  }
+
+  // Priority dedupe: track > linked > notLinked
+  for (const c of track) { linked.delete(c); notLinked.delete(c); }
+  for (const c of linked) { notLinked.delete(c); }
+
+  return {
+    track:     Array.from(track),
+    linked:    Array.from(linked),
+    notLinked: Array.from(notLinked)
+  };
+}
+
+/** Render one chip section; if empty, optionally show a muted 'None disclosed.' */
+function renderChipSection(title, items, showEmpty = ALWAYS_SHOW_SECTIONS){
+  const chips = items.map(i => `<li data-term="${i}">${i}</li>`).join('');
+  const body  = items.length
+    ? `<ul>${chips}</ul>`
+    : (showEmpty ? `<p class="muted small">None disclosed.</p>` : '');
+  return `<h5>${title}</h5>${body}`;
+}
+
+/** Plain-English fallback bullets if app.tracking_summary is absent */
+function fallbackTrackingSummary(sections){
+  const bullets = [];
+  if (sections.track.length === 0) {
+    bullets.push('No tracking categories disclosed.');
+  } else {
+    bullets.push('Some data may be used to track you across apps and websites.');
+  }
+  if (sections.linked.length > 0) {
+    bullets.push('Some data may be collected and linked to your identity.');
+  } else if (sections.track.length === 0 && sections.notLinked.length === 0) {
+    bullets.push('No data-collection categories disclosed by the developer.');
+  }
+  return `<ul>${bullets.map(b => `<li>${b}</li>`).join('')}</ul>`;
 }
 
 /* =========================
@@ -430,19 +505,21 @@ function renderAppsInto(listEl, apps, context='board'){
       devEl.textContent = app.developer || '';
     }
 
-    // Tracking summary
-    const tracking = frag.querySelector('.tracking');
-    tracking.innerHTML = app.tracking_summary
-      ? `<ul>${app.tracking_summary.map(t => `<li>${t}</li>`).join('')}</ul>`
-      : '<p class="muted">Tracking details coming soon.</p>';
+   // --- Tracking summary (plain-English if missing) ---
+const sections = buildChipSections(app);
+const tracking = frag.querySelector('.tracking');
+if (app.tracking_summary && app.tracking_summary.length) {
+  tracking.innerHTML = `<ul>${app.tracking_summary.map(t => `<li>${t}</li>`).join('')}</ul>`;
+} else {
+  tracking.innerHTML = fallbackTrackingSummary(sections);
+}
 
-    // Privacy chips (deduped/priority)
-    const privacy = frag.querySelector('.privacy');
-    const sections = normaliseSectionsForDisplay(app);
-    privacy.innerHTML =
-      renderChipSection('Data Used to Track You', sections.track) +
-      renderChipSection('Data Linked to You',   sections.linked) +
-      renderChipSection('Data Not Linked to You', sections.notLinked);
+// --- Privacy chips: always show 3 headings, no repeats ---
+const privacy = frag.querySelector('.privacy');
+privacy.innerHTML =
+  renderChipSection('Data Used to Track You', sections.track) +
+  renderChipSection('Data Linked to You', sections.linked) +
+  renderChipSection('Data Not Linked to You', sections.notLinked);
 
     // Risk meter
     const riskEl = frag.querySelector('.risk');
