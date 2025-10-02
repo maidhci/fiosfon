@@ -252,18 +252,26 @@ function renderChipSection(title, items, showEmpty = ALWAYS_SHOW_SECTIONS){
 
 /** Plain-English fallback bullets if app.tracking_summary is absent */
 function fallbackTrackingSummary(sections){
-  const bullets = [];
-  if (sections.track.length === 0) {
-    bullets.push('No tracking categories disclosed.');
+  const { track, linked, notLinked } = sections;
+
+  let line = '';
+  if (track.length && linked.length) {
+    line = 'This app says it collects some data and may use some of it to track you across apps and websites.';
+  } else if (track.length) {
+    line = 'This app says some data may be used to track you across apps and websites.';
+  } else if (linked.length) {
+    line = 'This app says some data may be collected and linked to your identity.';
+  } else if (notLinked.length) {
+    line = 'This app says it collects some data that it does not link to you.';
   } else {
-    bullets.push('Some data may be used to track you across apps and websites.');
+    line = 'No data-collection categories were disclosed by the developer.';
   }
-  if (sections.linked.length > 0) {
-    bullets.push('Some data may be collected and linked to your identity.');
-  } else if (sections.track.length === 0 && sections.notLinked.length === 0) {
-    bullets.push('No data-collection categories disclosed by the developer.');
-  }
-  return `<ul>${bullets.map(b => `<li>${b}</li>`).join('')}</ul>`;
+
+  // Add a short “Examples” tail to keep it concrete (max 3 unique items)
+  const examples = [...new Set([...track, ...linked, ...notLinked])].slice(0, 3);
+  const tail = examples.length ? ` <span class="muted small">Examples: ${examples.join(', ')}.</span>` : '';
+
+  return `<p>${line}${tail}</p>`;
 }
 
 /* =========================
