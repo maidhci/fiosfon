@@ -142,34 +142,37 @@
   </footer>
 
   <!-- App card template -->
-  <template id="app-card-tpl">
-    <li class="app-card">
-      <div class="card-top">
-        <div class="icon-stack">
-          <img class="app-icon" alt="" loading="lazy" />
-          <div class="rank-badge"><span class="rank"></span></div>
-        </div>
-        <div class="meta">
-          <div class="title-row">
-            <h4 class="name"></h4>
-            <span class="platform chip"></span>
-          </div>
-          <p class="developer"></p>
-        </div>
+<template id="app-card-tpl">
+  <li class="app-card">
+    <div class="card-top">
+      <div class="icon-stack">
+        <img class="app-icon" alt="" loading="lazy" />
+        <div class="rank-badge"><span class="rank"></span></div>
       </div>
-
-      <details>
-        <summary>See data collected / tracking info</summary>
-        <div class="tracking"></div>
-        <div class="privacy"></div>
-        <div class="risk"></div>
-        <div class="sources-row">
-          <div class="sources"></div>
-          <button class="share-btn" type="button" aria-label="Share this app">Share</button>
+      <div class="meta">
+        <div class="title-row">
+          <h4 class="name"></h4>
+          <span class="platform chip"></span>
         </div>
-      </details>
-    </li>
-  </template>
+        <p class="developer"></p>
+      </div>
+    </div>
+
+    <!-- NEW: compact risk meter visible when collapsed -->
+    <div class="risk risk-compact"></div>
+
+    <details>
+      <summary>See data collected / tracking info</summary>
+      <div class="tracking"></div>
+      <div class="privacy"></div>
+      <!-- Meter no longer duplicated here -->
+      <div class="sources-row">
+        <div class="sources"></div>
+        <button class="share-btn" type="button" aria-label="Share this app">Share</button>
+      </div>
+    </details>
+  </li>
+</template>
 
   <!-- Rights card template -->
   <template id="right-card-tpl">
