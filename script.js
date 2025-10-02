@@ -192,7 +192,9 @@ function viaProxy(u){
   } catch { return u; }
 }
 
-// Apple's standard category names we want to show as chips
+/* =========================
+   Category whitelist + chip builders (single source of truth)
+   ========================= */
 const VALID_CATEGORIES = new Set([
   "Contact Info","Identifiers","User Content","Usage Data","Diagnostics",
   "Location","Purchases","Financial Info","Health & Fitness","Sensitive Info",
@@ -209,7 +211,6 @@ function buildChipSections(app){
   const details = app.privacy_details || {};
   const labels  = app.privacy_labels  || {};
 
-  // Start with empty sets to dedupe
   const track = new Set(), linked = new Set(), notLinked = new Set();
 
   // 1) Use details if present
@@ -218,19 +219,19 @@ function buildChipSections(app){
     for (const cat of detailKeys) {
       if (!VALID_CATEGORIES.has(cat)) continue;
       const d = details[cat] || {};
-      if (d.tracked)      track.add(cat);
-      else if (d.linked)  linked.add(cat);
-      else if (d.notLinked) notLinked.add(cat);
+      if (d.tracked)         track.add(cat);
+      else if (d.linked)     linked.add(cat);
+      else if (d.notLinked)  notLinked.add(cat);
     }
   } else {
     // 2) Fall back to labels
-    for (const cat of labels["Data Used to Track You"] || []) if (VALID_CATEGORIES.has(cat)) track.add(cat);
-    for (const cat of labels["Data Linked to You"]      || []) if (VALID_CATEGORIES.has(cat)) linked.add(cat);
-    for (const cat of labels["Data Not Linked to You"]  || []) if (VALID_CATEGORIES.has(cat)) notLinked.add(cat);
+    for (const cat of (labels["Data Used to Track You"] || [])) if (VALID_CATEGORIES.has(cat)) track.add(cat);
+    for (const cat of (labels["Data Linked to You"] || []))      if (VALID_CATEGORIES.has(cat)) linked.add(cat);
+    for (const cat of (labels["Data Not Linked to You"] || []))  if (VALID_CATEGORIES.has(cat)) notLinked.add(cat);
   }
 
   // Priority dedupe: track > linked > notLinked
-  for (const c of track) { linked.delete(c); notLinked.delete(c); }
+  for (const c of track)  { linked.delete(c); notLinked.delete(c); }
   for (const c of linked) { notLinked.delete(c); }
 
   return {
@@ -285,51 +286,7 @@ function openDrawerHTML(title, html){
 function closeDrawer(){ const d=document.getElementById('glossary-drawer'); const b=document.getElementById('drawer-backdrop'); d.classList.remove('open'); d.setAttribute('aria-hidden','true'); b.hidden = true; }
 
 /* =========================
-   Chip normalisation (dedupe + priority)
-   ========================= */
-const VALID_CATEGORIES = new Set([
-  "Contact Info","Identifiers","Location","Financial Info","Health & Fitness",
-  "User Content","Browsing History","Search History","Usage Data","Diagnostics",
-  "Purchases","Contacts","Sensitive Info","Photos or Videos","Audio Data","Messages","Other Data"
-]);
-
-function normaliseSectionsForDisplay(app){
-  const labels  = app.privacy_labels  || {};
-  const details = app.privacy_details || {};
-
-  let track = [], linked = [], notLinked = [];
-  if (Object.keys(details).length) {
-    for (const [cat, d] of Object.entries(details)) {
-      if (!VALID_CATEGORIES.has(cat)) continue;
-      if (d?.tracked)        track.push(cat);
-      else if (d?.linked)    linked.push(cat);
-      else if (d?.notLinked) notLinked.push(cat);
-    }
-  } else {
-    track     = (labels["Data Used to Track You"] || []).filter(c => VALID_CATEGORIES.has(c));
-    linked    = (labels["Data Linked to You"]     || []).filter(c => VALID_CATEGORIES.has(c));
-    notLinked = (labels["Data Not Linked to You"] || []).filter(c => VALID_CATEGORIES.has(c));
-  }
-
-  track     = [...new Set(track)];
-  linked    = [...new Set(linked)];
-  notLinked = [...new Set(notLinked)];
-
-  // Priority: track > linked > notLinked
-  linked    = linked.filter(c => !track.includes(c));
-  notLinked = notLinked.filter(c => !track.includes(c) && !linked.includes(c));
-
-  return { track, linked, notLinked };
-}
-
-function renderChipSection(title, items){
-  if (!items.length) return '';
-  const chips = items.map(i => `<li data-term="${i}">${i}</li>`).join('');
-  return `<h5>${title}</h5><ul>${chips}</ul>`;
-}
-
-/* =========================
-   Risk meter (granular + purpose aware)
+   Risk meter (granular + purpose aware) uses same sections
    ========================= */
 const RISK_WEIGHTS = {
   track: {
@@ -373,8 +330,8 @@ function smoothScale(x, max) {
 }
 
 function computePrivacyScore(app){
-  const details  = app.privacy_details || {};
-  const { track, linked, notLinked } = normaliseSectionsForDisplay(app);
+  const details = app.privacy_details || {};
+  const { track, linked, notLinked } = buildChipSections(app);
 
   const scoreSection = (sectionName, items, weights, cap) => {
     const set = new Set(items.map(s => String(s).trim()));
@@ -505,21 +462,21 @@ function renderAppsInto(listEl, apps, context='board'){
       devEl.textContent = app.developer || '';
     }
 
-   // --- Tracking summary (plain-English if missing) ---
-const sections = buildChipSections(app);
-const tracking = frag.querySelector('.tracking');
-if (app.tracking_summary && app.tracking_summary.length) {
-  tracking.innerHTML = `<ul>${app.tracking_summary.map(t => `<li>${t}</li>`).join('')}</ul>`;
-} else {
-  tracking.innerHTML = fallbackTrackingSummary(sections);
-}
+    // --- Tracking summary (plain-English if missing) ---
+    const sections = buildChipSections(app);
+    const tracking = frag.querySelector('.tracking');
+    if (app.tracking_summary && app.tracking_summary.length) {
+      tracking.innerHTML = `<ul>${app.tracking_summary.map(t => `<li>${t}</li>`).join('')}</ul>`;
+    } else {
+      tracking.innerHTML = fallbackTrackingSummary(sections);
+    }
 
-// --- Privacy chips: always show 3 headings, no repeats ---
-const privacy = frag.querySelector('.privacy');
-privacy.innerHTML =
-  renderChipSection('Data Used to Track You', sections.track) +
-  renderChipSection('Data Linked to You', sections.linked) +
-  renderChipSection('Data Not Linked to You', sections.notLinked);
+    // --- Privacy chips: always show 3 headings, no repeats ---
+    const privacy = frag.querySelector('.privacy');
+    privacy.innerHTML =
+      renderChipSection('Data Used to Track You', sections.track) +
+      renderChipSection('Data Linked to You', sections.linked) +
+      renderChipSection('Data Not Linked to You', sections.notLinked);
 
     // Risk meter
     const riskEl = frag.querySelector('.risk');
