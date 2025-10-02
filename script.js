@@ -80,8 +80,6 @@ function mergeAppsByName(rssApps, localApps){
   });
 }
 
-/* ===== Sharing helpers ===== */
-
 function appPermalink(app) {
   const u = new URL(location.href);
   u.searchParams.set('app', app.name);
@@ -106,7 +104,7 @@ async function shareApp(app) {
 
   if (navigator.share) {
     try { await navigator.share({ title, text, url }); return; }
-    catch { /* cancelled – fall through */ }
+    catch (_) {}
   }
   try { await navigator.clipboard.writeText(url); showToast('Link copied'); }
   catch { window.prompt('Copy this link:', url); }
@@ -128,12 +126,19 @@ async function fetchAppleChart({ kind, limit=50, genre }){
     const images = e['im:image'] || [];
     const icon = images.length ? images[images.length-1].label : null;
     const link = e.link?.attributes?.href || e.id?.label || null;
+    // Try to pull ID from link
+    let app_id = null;
+    try {
+      const m = (link || '').match(/\/id(\d+)/) || [];
+      app_id = m[1] || null;
+    } catch {}
     return {
       rank: idx+1,
       name: e['im:name']?.label || '',
       platform: 'iOS',
       developer: e['im:artist']?.label || '',
       icon,
+      app_id,
       sources: link ? [{label:'App Store (RSS)', url: link}] : []
     };
   });
@@ -205,6 +210,50 @@ function openDrawerHTML(title, html){
 function closeDrawer(){ const d=document.getElementById('glossary-drawer'); const b=document.getElementById('drawer-backdrop'); d.classList.remove('open'); d.setAttribute('aria-hidden','true'); b.hidden = true; }
 
 /* =========================
+   Chip normalisation (dedupe + priority)
+   ========================= */
+const VALID_CATEGORIES = new Set([
+  "Contact Info","Identifiers","Location","Financial Info","Health & Fitness",
+  "User Content","Browsing History","Search History","Usage Data","Diagnostics",
+  "Purchases","Contacts","Sensitive Info","Photos or Videos","Audio Data","Messages","Other Data"
+]);
+
+function normaliseSectionsForDisplay(app){
+  const labels  = app.privacy_labels  || {};
+  const details = app.privacy_details || {};
+
+  let track = [], linked = [], notLinked = [];
+  if (Object.keys(details).length) {
+    for (const [cat, d] of Object.entries(details)) {
+      if (!VALID_CATEGORIES.has(cat)) continue;
+      if (d?.tracked)        track.push(cat);
+      else if (d?.linked)    linked.push(cat);
+      else if (d?.notLinked) notLinked.push(cat);
+    }
+  } else {
+    track     = (labels["Data Used to Track You"] || []).filter(c => VALID_CATEGORIES.has(c));
+    linked    = (labels["Data Linked to You"]     || []).filter(c => VALID_CATEGORIES.has(c));
+    notLinked = (labels["Data Not Linked to You"] || []).filter(c => VALID_CATEGORIES.has(c));
+  }
+
+  track     = [...new Set(track)];
+  linked    = [...new Set(linked)];
+  notLinked = [...new Set(notLinked)];
+
+  // Priority: track > linked > notLinked
+  linked    = linked.filter(c => !track.includes(c));
+  notLinked = notLinked.filter(c => !track.includes(c) && !linked.includes(c));
+
+  return { track, linked, notLinked };
+}
+
+function renderChipSection(title, items){
+  if (!items.length) return '';
+  const chips = items.map(i => `<li data-term="${i}">${i}</li>`).join('');
+  return `<h5>${title}</h5><ul>${chips}</ul>`;
+}
+
+/* =========================
    Risk meter (granular + purpose aware)
    ========================= */
 const RISK_WEIGHTS = {
@@ -249,13 +298,8 @@ function smoothScale(x, max) {
 }
 
 function computePrivacyScore(app){
-  const labels = app.privacy_labels || {};
-  const details = app.privacy_details || {};
-  const sections = {
-    track: labels["Data Used to Track You"] || [],
-    linked: labels["Data Linked to You"] || [],
-    notLinked: labels["Data Not Linked to You"] || []
-  };
+  const details  = app.privacy_details || {};
+  const { track, linked, notLinked } = normaliseSectionsForDisplay(app);
 
   const scoreSection = (sectionName, items, weights, cap) => {
     const set = new Set(items.map(s => String(s).trim()));
@@ -263,7 +307,7 @@ function computePrivacyScore(app){
     set.forEach(cat => {
       let base = weights[cat] || 0;
       const det = details[cat];
-      if (det && Array.isArray(det.purposes)) {
+      if (det && Array.isArray(det?.purposes)) {
         for (const p of det.purposes) base += (PURPOSE_BONUS[p] || 0);
         if (sectionName !== 'track' && det.tracked) base += 3;
       }
@@ -273,9 +317,9 @@ function computePrivacyScore(app){
     return Math.min(softened, cap);
   };
 
-  const sTrack     = scoreSection('track',     sections.track,     RISK_WEIGHTS.track,     SECTION_CAPS.track);
-  const sLinked    = scoreSection('linked',    sections.linked,    RISK_WEIGHTS.linked,    SECTION_CAPS.linked);
-  const sNotLinked = scoreSection('notLinked', sections.notLinked, RISK_WEIGHTS.notLinked, SECTION_CAPS.notLinked);
+  const sTrack     = scoreSection('track',     track,     RISK_WEIGHTS.track,     SECTION_CAPS.track);
+  const sLinked    = scoreSection('linked',    linked,    RISK_WEIGHTS.linked,    SECTION_CAPS.linked);
+  const sNotLinked = scoreSection('notLinked', notLinked, RISK_WEIGHTS.notLinked, SECTION_CAPS.notLinked);
 
   const raw = sTrack + sLinked + sNotLinked;
   const score = Math.round(smoothScale(raw, 140));
@@ -290,17 +334,26 @@ function computePrivacyScore(app){
 function renderRiskMeter(containerEl, app){
   const { score, band } = computePrivacyScore(app);
   const pct = Math.max(0, Math.min(100, score)); // 0..100
-  const bandClass = band === "High" ? "high" : (band === "Medium" ? "med" : "low");
+
+  const bandClass =
+    band === "High" ? "high" :
+    band === "Medium" ? "med" : "low";
 
   containerEl.innerHTML = `
     <div class="risk-label">
       Data collection intensity
       <span class="risk-badge ${bandClass}">${band}</span>
     </div>
-    <div class="risk-track" role="img" aria-label="Data collection intensity ${Math.round(pct)} out of 100">
-      <div class="risk-marker" style="left:${pct}%;" title="${Math.round(pct)}/100"></div>
+
+    <div class="risk-track" role="img"
+         aria-label="Data collection intensity ${Math.round(pct)} out of 100">
+      <div class="risk-marker" style="left:${pct}%"
+           title="${Math.round(pct)}/100"></div>
     </div>
-    <div class="risk-scale"><span>low</span><span>medium</span><span>high</span></div>
+
+    <div class="risk-scale">
+      <span>low</span><span>medium</span><span>high</span>
+    </div>
   `;
 }
 
@@ -347,7 +400,6 @@ function renderAppsInto(listEl, apps, context='board'){
   if (!listEl) return;
   listEl.innerHTML = '';
   const tpl = document.getElementById('app-card-tpl');
-
   apps.forEach((app, idx) => {
     const frag = tpl.content.cloneNode(true);
     const root = frag.querySelector('.app-card') || frag.firstElementChild;
@@ -359,8 +411,9 @@ function renderAppsInto(listEl, apps, context='board'){
     resolveIcon(iconEl, app);
 
     // Rank text
+    let rankText = '';
     const hasRealRank = Number.isFinite(app.rank);
-    const rankText = (context === 'board') ? `#${hasRealRank ? app.rank : (idx+1)}` : (hasRealRank ? `#${app.rank}` : '');
+    rankText = (context === 'board') ? `#${hasRealRank ? app.rank : (idx+1)}` : (hasRealRank ? `#${app.rank}` : '');
     frag.querySelector('.rank').textContent = rankText;
 
     // Name + platform
@@ -383,25 +436,19 @@ function renderAppsInto(listEl, apps, context='board'){
       ? `<ul>${app.tracking_summary.map(t => `<li>${t}</li>`).join('')}</ul>`
       : '<p class="muted">Tracking details coming soon.</p>';
 
-    // Privacy labels -> chips
+    // Privacy chips (deduped/priority)
     const privacy = frag.querySelector('.privacy');
-    if (app.privacy_labels){
-      let html = '';
-      for (const [section, items] of Object.entries(app.privacy_labels)){
-        html += `<h5>${section}</h5><ul>`;
-        html += items.map(i => `<li data-term="${i}">${i}</li>`).join('');
-        html += `</ul>`;
-      }
-      privacy.innerHTML = html;
-    } else {
-      privacy.innerHTML = '';
-    }
+    const sections = normaliseSectionsForDisplay(app);
+    privacy.innerHTML =
+      renderChipSection('Data Used to Track You', sections.track) +
+      renderChipSection('Data Linked to You',   sections.linked) +
+      renderChipSection('Data Not Linked to You', sections.notLinked);
 
     // Risk meter
     const riskEl = frag.querySelector('.risk');
     if (riskEl) renderRiskMeter(riskEl, app);
 
-    // Sources + Share button
+    // Sources + Share
     const sources = frag.querySelector('.sources');
     const shareBtn = frag.querySelector('.share-btn');
 
@@ -491,7 +538,7 @@ function setupControls(){
   document.getElementById('drawer-backdrop')?.addEventListener('click', closeDrawer);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
-  // Glossary chip clicks -> open drawer with definition + app-specific details
+  // Glossary chip clicks -> open drawer with definition + app-specific details (if available)
   document.body.addEventListener('click', async (e) => {
     const liChip = e.target.closest('.privacy li');
     if (!liChip) return;
@@ -607,9 +654,7 @@ function setupControls(){
 /* =========================
    Data loading with safe fallback
    ========================= */
-
-// Toggle: render from local apps.json only (set to false to use Apple RSS)
-const USE_LOCAL_ONLY = false; // ← live mode
+const USE_LOCAL_ONLY = false; // live mode
 
 async function loadBoards(){
   // Load local dataset (for enrichment + fallback)
