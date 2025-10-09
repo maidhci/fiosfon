@@ -362,3 +362,12 @@ nav a:hover { border-color: var(--ut-orange); color: var(--ut-orange); }
 .risk-compact .risk-track { height: 8px; }
 .risk-compact .risk-marker { width: 12px; height: 12px; }
 .risk-compact .risk-label { font-size: .85rem; }
+
+.purpose-heading { margin: .6rem 0 .25rem; color: var(--accent); }
+.purpose-grid { margin-top: .5rem; display: grid; gap: .5rem; }
+.purpose-row { display: grid; grid-template-columns: 220px 1fr; gap: .5rem; align-items: start; }
+.purpose-title { font-weight: 600; color: var(--prussian-blue); }
+.purpose-items .chip { margin-right: .25rem; margin-bottom: .25rem; display: inline-block; }
+@media (max-width: 520px){
+  .purpose-row { grid-template-columns: 1fr; }
+}
