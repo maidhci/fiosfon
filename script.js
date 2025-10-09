@@ -362,19 +362,19 @@ function normalizePurpose(p) { return PURPOSE_ALIASES[p] || p; }
 const RISK_WEIGHTS = {
   track: {
     "Identifiers": 12, "Location": 12, "Contact Info": 10, "Financial Info": 12,
-    "Health & Fitness": 12, "Browsing/Search History": 10, "User Content": 8,
+    "Health & Fitness": 12, "Browsing History": 10, "Search History": 10, "User Content": 8,
     "Purchases": 6, "Usage Data": 6, "Diagnostics": 2, "Photos or Videos": 8,
     "Audio Data": 6, "Messages": 10, "Contacts": 8, "Sensitive Info": 12
   },
   linked: {
     "Identifiers": 9, "Location": 9, "Contact Info": 8, "Financial Info": 9,
-    "Health & Fitness": 9, "Browsing/Search History": 8, "User Content": 7,
+    "Health & Fitness": 9, "Browsing History": 8, "Search History": 8, "User Content": 7,
     "Purchases": 4, "Usage Data": 4, "Diagnostics": 1, "Photos or Videos": 7,
     "Audio Data": 5, "Messages": 8, "Contacts": 6, "Sensitive Info": 10
   },
   notLinked: {
     "Identifiers": 2, "Location": 2, "Contact Info": 2, "Financial Info": 2,
-    "Health & Fitness": 2, "Browsing/Search History": 2, "User Content": 2,
+    "Health & Fitness": 2, "Browsing History": 2, "Search History": 2, "User Content": 2,
     "Purchases": 1, "Usage Data": 1, "Diagnostics": 1, "Photos or Videos": 2,
     "Audio Data": 1, "Messages": 2, "Contacts": 1, "Sensitive Info": 3
   }
