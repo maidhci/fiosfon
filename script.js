@@ -314,7 +314,49 @@ function groupCategoryDetailsByPurpose(catDetail) {
 }
 
 /* =========================
-   Purpose → bonus normalization
+   Glossary drawer (load + open/close)
+   ========================= */
+let GLOSSARY = null;
+
+async function loadGlossary(){
+  if (GLOSSARY) return GLOSSARY;
+  try {
+    GLOSSARY = await loadJSON('data/glossary.json');
+    if (!GLOSSARY || typeof GLOSSARY !== 'object') GLOSSARY = { terms: {} };
+    if (!GLOSSARY.terms) GLOSSARY.terms = {};
+  } catch {
+    GLOSSARY = { terms: {} };
+  }
+  return GLOSSARY;
+}
+
+function openDrawerHTML(title, html){
+  const drawer = document.getElementById('glossary-drawer');
+  const backdrop = document.getElementById('drawer-backdrop');
+  if (!drawer || !backdrop) return;
+
+  const t = document.getElementById('glossary-title');
+  const b = document.getElementById('glossary-body');
+  if (t) t.textContent = title || 'Privacy term';
+  if (b) b.innerHTML = html || '<p>No description available.</p>';
+
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  backdrop.hidden = false;
+}
+
+function closeDrawer(){
+  const drawer = document.getElementById('glossary-drawer');
+  const backdrop = document.getElementById('drawer-backdrop');
+  if (!drawer || !backdrop) return;
+
+  drawer.classList.remove('open');
+  drawer.setAttribute('aria-hidden', 'true');
+  backdrop.hidden = true;
+}
+
+/* =========================
+   Purpose → bonus normalization (for risk scoring)
    ========================= */
 const PURPOSE_BONUS = {
   "Advertising": 6,
@@ -327,7 +369,6 @@ const PURPOSE_BONUS = {
   "Other Purposes": 1
 };
 
-// map Apple’s exact labels (and variants) to our bonus buckets
 const PURPOSE_ALIASES = {
   "Third-Party Advertising": "Advertising",
   "Third Party Advertising": "Advertising",
@@ -353,7 +394,6 @@ const PURPOSE_ALIASES = {
   "Other Purposes": "Other Purposes",
   "Other": "Other Purposes"
 };
-
 function normalizePurpose(p) { return PURPOSE_ALIASES[p] || p; }
 
 /* =========================
@@ -630,85 +670,85 @@ function setupControls(){
   document.getElementById('drawer-backdrop')?.addEventListener('click', closeDrawer);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
- // Glossary chip clicks -> open drawer with definition + app-specific details (if available)
-document.body.addEventListener('click', async (e) => {
-  const liChip = e.target.closest('li[data-term]');
-  if (!liChip) return;
+  // Glossary chip clicks -> open drawer with definition + app-specific details (if available)
+  document.body.addEventListener('click', async (e) => {
+    const liChip = e.target.closest('li[data-term]');
+    if (!liChip) return;
 
-  const card = liChip.closest('[data-app-key]');
-  const key = card?.dataset.appKey;
+    const card = liChip.closest('[data-app-key]');
+    const key = card?.dataset.appKey;
 
-  const app = key
-    ? (['free','paid','games']
-        .flatMap(k => state.boards[k].apps)
-        .find(a => appKey(a) === key))
-    : null;
+    const app = key
+      ? (['free','paid','games']
+          .flatMap(k => state.boards[k].apps)
+          .find(a => appKey(a) === key))
+      : null;
 
-  const term = (liChip.dataset.term || liChip.textContent || '').trim();
-  if (!term) return;
+    const term = (liChip.dataset.term || liChip.textContent || '').trim();
+    if (!term) return;
 
-  try {
-    const glossary = await loadGlossary();
-    const def = glossary.terms?.[term] || glossary.terms?.[term.toLowerCase()] ||
-      'This category groups similar types of data. Exact collection depends on the features you use and your settings.';
+    try {
+      const glossary = await loadGlossary();
+      const def = glossary.terms?.[term] || glossary.terms?.[term.toLowerCase()] ||
+        'This category groups similar types of data. Exact collection depends on the features you use and your settings.';
 
-    let html = `<p class="muted">${def}</p>`;
+      let html = `<p class="muted">${def}</p>`;
 
-    const details = app?.privacy_details?.[term];
-    if (details) {
-      const grouped = groupCategoryDetailsByPurpose(details);
+      const details = app?.privacy_details?.[term];
+      if (details) {
+        const grouped = groupCategoryDetailsByPurpose(details);
 
-      const statusBadges = [
-        grouped.status.tracked   ? '<span class="badge warn">Used to Track You</span>' : '',
-        grouped.status.linked    ? '<span class="badge info">Linked to You</span>' : '',
-        grouped.status.notLinked ? '<span class="badge">Not Linked</span>' : ''
-      ].filter(Boolean).join(' ');
+        const statusBadges = [
+          grouped.status.tracked   ? '<span class="badge warn">Used to Track You</span>' : '',
+          grouped.status.linked    ? '<span class="badge info">Linked to You</span>' : '',
+          grouped.status.notLinked ? '<span class="badge">Not Linked</span>' : ''
+        ].filter(Boolean).join(' ');
 
-      const sub = grouped.subItems.length
-        ? grouped.subItems.map(s => `<span class="chip">${s}</span>`).join(' ')
-        : '<em>No specific sub-items disclosed.</em>';
+        const sub = grouped.subItems.length
+          ? grouped.subItems.map(s => `<span class="chip">${s}</span>`).join(' ')
+          : '<em>No specific sub-items disclosed.</em>';
 
-      const purposeRows = grouped.purposes.length
-        ? grouped.purposes.map(p => `
-            <div class="purpose-row">
-              <div class="purpose-title">${p.label}</div>
-              <div class="purpose-items">
-                ${p.items.length
-                  ? p.items.map(s => `<span class="chip soft">${s}</span>`).join(' ')
-                  : '<span class="muted small">No sub-items listed</span>'}
+        const purposeRows = grouped.purposes.length
+          ? grouped.purposes.map(p => `
+              <div class="purpose-row">
+                <div class="purpose-title">${p.label}</div>
+                <div class="purpose-items">
+                  ${p.items.length
+                    ? p.items.map(s => `<span class="chip soft">${s}</span>`).join(' ')
+                    : '<span class="muted small">No sub-items listed</span>'}
+                </div>
               </div>
-            </div>
-          `).join('')
-        : '<p class="muted">No purposes listed for this category.</p>';
+            `).join('')
+          : '<p class="muted">No purposes listed for this category.</p>';
 
-      html += `
-        <hr/>
-        <h4>This app’s disclosure for “${term}”</h4>
+        html += `
+          <hr/>
+          <h4>This app’s disclosure for “${term}”</h4>
 
-        <div class="drawer-block">
-          <div class="drawer-row"><strong>Status:</strong> ${statusBadges || '<span class="badge">Unspecified</span>'}</div>
-          <div class="drawer-row"><strong>Sub-items:</strong> ${sub}</div>
-        </div>
+          <div class="drawer-block">
+            <div class="drawer-row"><strong>Status:</strong> ${statusBadges || '<span class="badge">Unspecified</span>'}</div>
+            <div class="drawer-row"><strong>Sub-items:</strong> ${sub}</div>
+          </div>
 
-        <div class="purpose-grid">
-          <h5 class="purpose-heading">How this data may be used</h5>
-          ${purposeRows}
-        </div>
-      `;
+          <div class="purpose-grid">
+            <h5 class="purpose-heading">How this data may be used</h5>
+            ${purposeRows}
+          </div>
+        `;
 
-      const srcLinks = (app?.sources || []).map(s =>
-        `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Source'}</a>`
-      ).join(' · ');
-      const policy  = app?.privacy_policy_url ? ` · <a href="${app.privacy_policy_url}" target="_blank" rel="noopener">Privacy Policy</a>` : '';
-      const devSite = app?.developer_website_url ? ` · <a href="${app.developer_website_url}" target="_blank" rel="noopener">Developer Website</a>` : '';
-      html += `<p class="muted small">Source: ${srcLinks || 'App Store listing'}${policy}${devSite}</p>`;
+        const srcLinks = (app?.sources || []).map(s =>
+          `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Source'}</a>`
+        ).join(' · ');
+        const policy  = app?.privacy_policy_url ? ` · <a href="${app.privacy_policy_url}" target="_blank" rel="noopener">Privacy Policy</a>` : '';
+        const devSite = app?.developer_website_url ? ` · <a href="${app.developer_website_url}" target="_blank" rel="noopener">Developer Website</a>` : '';
+        html += `<p class="muted small">Source: ${srcLinks || 'App Store listing'}${policy}${devSite}</p>`;
+      }
+
+      openDrawerHTML(term, html);
+    } catch (err) {
+      console.error('Drawer open failed:', err);
     }
-
-    openDrawerHTML(term, html);
-  } catch (err) {
-    console.error('Drawer open failed:', err);
-  }
-});
+  });
 
   // Search
   const input = document.getElementById('search-input');
