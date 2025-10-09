@@ -500,12 +500,12 @@ function renderAppsInto(listEl, apps, context='board'){
       tracking.innerHTML = fallbackTrackingSummary(sections);
     }
 
-    // --- Privacy chips: always show 3 headings, no repeats ---
-    const privacy = frag.querySelector('.privacy');
-    privacy.innerHTML =
-      renderChipSection('Data Used to Track You', sections.track) +
-      renderChipSection('Data Linked to You', sections.linked) +
-      renderChipSection('Data Not Linked to You', sections.notLinked);
+// --- Privacy chips with heading icons ---
+const privacy = frag.querySelector('.privacy');
+privacy.innerHTML =
+  renderChipSection('Data Used to Track You', sections.track, '🎯') +
+  renderChipSection('Data Linked to You', sections.linked, '🔗') +
+  renderChipSection('Data Not Linked to You', sections.notLinked, '🚫');
 
     // Risk meter
     const riskEl = frag.querySelector('.risk');
