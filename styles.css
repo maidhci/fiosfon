@@ -343,6 +343,20 @@ nav a:hover { border-color: var(--ut-orange); color: var(--ut-orange); }
   margin-right: 0.5rem;
 }
 
+/* heading icons */
+.h-icon {
+  margin-right: .35rem;
+  font-size: 1.05em;
+  vertical-align: -1px;
+}
+
+/* chip icons */
+.privacy li .chip-ico {
+  margin-right: .3rem;
+  font-size: .95em;
+  line-height: 1;
+}
+
 /* Compact meter variant on collapsed cards */
 .risk-compact { margin-top: .25rem; }
 .risk-compact .risk-track { height: 8px; }
