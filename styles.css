@@ -371,3 +371,85 @@ nav a:hover { border-color: var(--ut-orange); color: var(--ut-orange); }
 @media (max-width: 520px){
   .purpose-row { grid-template-columns: 1fr; }
 }
+
+/* ===== Drawer: purpose breakdown ===== */
+.purpose-grid {
+  margin-top: .75rem;
+  border-top: 1px dashed var(--border);
+  padding-top: .75rem;
+  display: grid;
+  gap: .5rem;
+}
+
+.purpose-heading {
+  margin: 0 0 .25rem;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.purpose-row {
+  display: grid;
+  grid-template-columns: 220px 1fr; /* title | items */
+  gap: .75rem;
+  align-items: start;
+  padding: .55rem .6rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.purpose-title {
+  font-weight: 700;
+  color: var(--prussian-blue);
+  font-size: .95rem;
+}
+
+.purpose-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+
+/* Reuse your chip look, slightly softer for “purpose items” */
+.purpose-items .chip.soft {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+/* Compact badges shown in the drawer “Status” line */
+.badge {
+  display: inline-block;
+  padding: .15rem .45rem;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: var(--text);
+  font-size: .75rem;
+  font-weight: 600;
+}
+.badge.warn { background: #fff3cd; color: #8a6d3b; }   /* Used to Track You */
+.badge.info { background: #e7f1ff; color: #1f4b99; }   /* Linked to You */
+
+/* Drawer block rows */
+.drawer-block { display: grid; gap: .4rem; margin: .5rem 0; }
+.drawer-row strong { display: inline-block; min-width: 110px; }
+
+/* ===== Chip + heading icons (for privacy sections) ===== */
+.chip-ico {
+  margin-right: .35rem;
+  font-size: .95em;
+}
+
+.h-icon {
+  margin-right: .4rem;
+  font-size: 1.05em;
+  vertical-align: -1px;
+}
+
+/* Responsive: stack purpose rows on narrow screens */
+@media (max-width: 560px) {
+  .purpose-row {
+    grid-template-columns: 1fr;
+  }
+  .drawer-row strong { min-width: 0; margin-right: .25rem; }
+}
