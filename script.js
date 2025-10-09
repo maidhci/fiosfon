@@ -269,6 +269,55 @@ function fallbackTrackingSummary(sections){
   return `<p>${line}${tail}</p>`;
 }
 
+// Friendly order and labels for Apple purposes
+const PURPOSE_ORDER = [
+  "Third-Party Advertising",
+  "Developer's Advertising or Marketing",
+  "Analytics",
+  "Product Personalization",
+  "App Functionality",
+  "Fraud Prevention, Security, and Compliance",
+  "Other Purposes"
+];
+
+const PURPOSE_LABELS = {
+  "Third-Party Advertising": "Third-party advertising",
+  "Developer's Advertising or Marketing": "Developer’s advertising or marketing",
+  "Analytics": "Analytics",
+  "Product Personalization": "Product personalisation",
+  "App Functionality": "App functionality",
+  "Fraud Prevention, Security, and Compliance": "Fraud prevention & compliance",
+  "Other Purposes": "Other purposes"
+};
+
+function groupCategoryDetailsByPurpose(catDetail) {
+  // catDetail is app.privacy_details[term], e.g. for "Identifiers"
+  // Expected shape: { tracked, linked, notLinked, subtypes?: [], purposes?: [] }
+  if (!catDetail) return null;
+
+  // Build a single row from the category’s sub-items (Apple shows "sub-items" inside each purpose card)
+  const subItems = Array.isArray(catDetail.subtypes) ? catDetail.subtypes : [];
+
+  const set = new Set(Array.isArray(catDetail.purposes) ? catDetail.purposes : []);
+  const grouped = PURPOSE_ORDER
+    .filter(p => set.has(p))
+    .map(p => ({
+      purpose: p,
+      label: PURPOSE_LABELS[p] || p,
+      items: subItems // Apple repeats the same sub-items inside each purpose for that category
+    }));
+
+  return {
+    status: {
+      tracked: !!catDetail.tracked,
+      linked: !!catDetail.linked,
+      notLinked: !!catDetail.notLinked
+    },
+    subItems,
+    purposes: grouped
+  };
+}
+
 /* =========================
    Glossary drawer
    ========================= */
@@ -587,24 +636,45 @@ function setupControls(){
 
     let html = `<p class="muted">${def}</p>`;
 
-    const details = app?.privacy_details?.[term];
+       const details = app?.privacy_details?.[term];
     if (details) {
+      const grouped = groupCategoryDetailsByPurpose(details);
+
       const statusBadges = [
-        details.tracked ? '<span class="badge warn">Used to Track You</span>' : '',
-        details.linked ? '<span class="badge info">Linked to You</span>' : '',
-        details.notLinked ? '<span class="badge">Not Linked</span>' : ''
+        grouped.status.tracked   ? '<span class="badge warn">Used to Track You</span>' : '',
+        grouped.status.linked    ? '<span class="badge info">Linked to You</span>' : '',
+        grouped.status.notLinked ? '<span class="badge">Not Linked</span>' : ''
       ].filter(Boolean).join(' ');
 
-      const sub = (details.subtypes || []).map(s => `<span class="chip">${s}</span>`).join(' ') || '<em>No specific sub-items disclosed.</em>';
-      const purp = (details.purposes || []).map(p => `<span class="chip soft">${p}</span>`).join(' ') || '<em>No purposes listed.</em>';
+      const sub = grouped.subItems.length
+        ? grouped.subItems.map(s => `<span class="chip">${s}</span>`).join(' ')
+        : '<em>No specific sub-items disclosed.</em>';
+
+      // Purpose table (like Apple, purpose blocks with sub-items)
+      const purposeRows = grouped.purposes.length
+        ? grouped.purposes.map(p => `
+            <div class="purpose-row">
+              <div class="purpose-title">${p.label}</div>
+              <div class="purpose-items">
+                ${p.items.length ? p.items.map(s => `<span class="chip soft">${s}</span>`).join(' ')
+                                  : '<span class="muted small">No sub-items listed</span>'}
+              </div>
+            </div>
+          `).join('')
+        : '<p class="muted">No purposes listed for this category.</p>';
 
       html += `
         <hr/>
         <h4>This app’s disclosure for “${term}”</h4>
+
         <div class="drawer-block">
           <div class="drawer-row"><strong>Status:</strong> ${statusBadges || '<span class="badge">Unspecified</span>'}</div>
           <div class="drawer-row"><strong>Sub-items:</strong> ${sub}</div>
-          <div class="drawer-row"><strong>Purposes:</strong> ${purp}</div>
+        </div>
+
+        <div class="purpose-grid">
+          <h5 class="purpose-heading">How this data may be used</h5>
+          ${purposeRows}
         </div>
       `;
 
