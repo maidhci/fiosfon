@@ -630,20 +630,27 @@ function setupControls(){
   document.getElementById('drawer-backdrop')?.addEventListener('click', closeDrawer);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
-  document.body.addEventListener('click', async (e) => {
-    const liChip = e.target.closest('.privacy li');
-    if (!liChip) return;
+ // Glossary chip clicks -> open drawer with definition + app-specific details (if available)
+document.body.addEventListener('click', async (e) => {
+  const liChip = e.target.closest('li[data-term]');
+  if (!liChip) return;
 
-    const card = e.target.closest('[data-app-key]');
-    const key = card?.dataset.appKey;
-    const app = key
-      ? (['free','paid','games'].flatMap(k => state.boards[k].apps).find(a => appKey(a) === key))
-      : null;
+  const card = liChip.closest('[data-app-key]');
+  const key = card?.dataset.appKey;
 
-    const term = liChip.dataset.term || liChip.textContent.trim();
+  const app = key
+    ? (['free','paid','games']
+        .flatMap(k => state.boards[k].apps)
+        .find(a => appKey(a) === key))
+    : null;
+
+  const term = (liChip.dataset.term || liChip.textContent || '').trim();
+  if (!term) return;
+
+  try {
     const glossary = await loadGlossary();
     const def = glossary.terms?.[term] || glossary.terms?.[term.toLowerCase()] ||
-                'This category groups similar types of data. Exact collection depends on the features you use and your settings.';
+      'This category groups similar types of data. Exact collection depends on the features you use and your settings.';
 
     let html = `<p class="muted">${def}</p>`;
 
@@ -666,8 +673,9 @@ function setupControls(){
             <div class="purpose-row">
               <div class="purpose-title">${p.label}</div>
               <div class="purpose-items">
-                ${p.items.length ? p.items.map(s => `<span class="chip soft">${s}</span>`).join(' ')
-                                  : '<span class="muted small">No sub-items listed</span>'}
+                ${p.items.length
+                  ? p.items.map(s => `<span class="chip soft">${s}</span>`).join(' ')
+                  : '<span class="muted small">No sub-items listed</span>'}
               </div>
             </div>
           `).join('')
@@ -688,14 +696,19 @@ function setupControls(){
         </div>
       `;
 
-      const srcLinks = (app.sources || []).map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Source'}</a>`).join(' · ');
-      const policy = app.privacy_policy_url ? ` · <a href="${app.privacy_policy_url}" target="_blank" rel="noopener">Privacy Policy</a>` : '';
-      const devSite = app.developer_website_url ? ` · <a href="${app.developer_website_url}" target="_blank" rel="noopener">Developer Website</a>` : '';
+      const srcLinks = (app?.sources || []).map(s =>
+        `<a href="${s.url}" target="_blank" rel="noopener">${s.label || 'Source'}</a>`
+      ).join(' · ');
+      const policy  = app?.privacy_policy_url ? ` · <a href="${app.privacy_policy_url}" target="_blank" rel="noopener">Privacy Policy</a>` : '';
+      const devSite = app?.developer_website_url ? ` · <a href="${app.developer_website_url}" target="_blank" rel="noopener">Developer Website</a>` : '';
       html += `<p class="muted small">Source: ${srcLinks || 'App Store listing'}${policy}${devSite}</p>`;
     }
 
     openDrawerHTML(term, html);
-  });
+  } catch (err) {
+    console.error('Drawer open failed:', err);
+  }
+});
 
   // Search
   const input = document.getElementById('search-input');
