@@ -291,20 +291,15 @@ const PURPOSE_LABELS = {
 };
 
 function groupCategoryDetailsByPurpose(catDetail) {
-  // catDetail is app.privacy_details[term], e.g. for "Identifiers"
-  // Expected shape: { tracked, linked, notLinked, subtypes?: [], purposes?: [] }
   if (!catDetail) return null;
-
-  // Build a single row from the category’s sub-items (Apple shows "sub-items" inside each purpose card)
   const subItems = Array.isArray(catDetail.subtypes) ? catDetail.subtypes : [];
-
   const set = new Set(Array.isArray(catDetail.purposes) ? catDetail.purposes : []);
   const grouped = PURPOSE_ORDER
     .filter(p => set.has(p))
     .map(p => ({
       purpose: p,
       label: PURPOSE_LABELS[p] || p,
-      items: subItems // Apple repeats the same sub-items inside each purpose for that category
+      items: subItems
     }));
 
   return {
@@ -319,23 +314,47 @@ function groupCategoryDetailsByPurpose(catDetail) {
 }
 
 /* =========================
-   Glossary drawer
+   Purpose → bonus normalization
    ========================= */
-let GLOSSARY = null;
-async function loadGlossary(){
-  if (GLOSSARY) return GLOSSARY;
-  try{ GLOSSARY = await loadJSON('data/glossary.json'); }
-  catch{ GLOSSARY = { terms:{} }; }
-  return GLOSSARY;
-}
-function openDrawerHTML(title, html){
-  const d = document.getElementById('glossary-drawer');
-  const b = document.getElementById('drawer-backdrop');
-  document.getElementById('glossary-title').textContent = title || 'Privacy term';
-  document.getElementById('glossary-body').innerHTML = html || '<p>No description available.</p>';
-  d.classList.add('open'); d.setAttribute('aria-hidden','false'); b.hidden = false;
-}
-function closeDrawer(){ const d=document.getElementById('glossary-drawer'); const b=document.getElementById('drawer-backdrop'); d.classList.remove('open'); d.setAttribute('aria-hidden','true'); b.hidden = true; }
+const PURPOSE_BONUS = {
+  "Advertising": 6,
+  "Developer's Advertising": 4,
+  "Personalization": 4,
+  "Product Personalization": 3,
+  "Analytics": 2,
+  "Fraud Prevention": 3,
+  "App Functionality": 0,
+  "Other Purposes": 1
+};
+
+// map Apple’s exact labels (and variants) to our bonus buckets
+const PURPOSE_ALIASES = {
+  "Third-Party Advertising": "Advertising",
+  "Third Party Advertising": "Advertising",
+  "Advertising": "Advertising",
+
+  "Developer's Advertising or Marketing": "Developer's Advertising",
+  "Developer’s Advertising or Marketing": "Developer's Advertising",
+
+  "Analytics": "Analytics",
+
+  "Product Personalization": "Product Personalization",
+  "Product Personalisation": "Product Personalization",
+  "Personalization": "Product Personalization",
+  "Personalisation": "Product Personalization",
+
+  "App Functionality": "App Functionality",
+
+  "Fraud Prevention, Security, and Compliance": "Fraud Prevention",
+  "Fraud Prevention": "Fraud Prevention",
+  "Security": "Fraud Prevention",
+  "Compliance": "Fraud Prevention",
+
+  "Other Purposes": "Other Purposes",
+  "Other": "Other Purposes"
+};
+
+function normalizePurpose(p) { return PURPOSE_ALIASES[p] || p; }
 
 /* =========================
    Risk meter (granular + purpose aware)
@@ -361,17 +380,6 @@ const RISK_WEIGHTS = {
   }
 };
 
-const PURPOSE_BONUS = {
-  "Advertising": 6,
-  "Developer's Advertising": 4,
-  "Personalization": 4,
-  "Product Personalization": 3,
-  "Analytics": 2,
-  "Fraud Prevention": 3,
-  "App Functionality": 0,
-  "Other Purposes": 1
-};
-
 const SECTION_CAPS = { track: 70, linked: 50, notLinked: 20 };
 
 function smoothScale(x, max) {
@@ -392,7 +400,10 @@ function computePrivacyScore(app){
       let base = weights[cat] || 0;
       const det = details[cat];
       if (det && Array.isArray(det?.purposes)) {
-        for (const p of det.purposes) base += (PURPOSE_BONUS[p] || 0);
+        for (const p of det.purposes) {
+          const key = normalizePurpose(p);
+          base += (PURPOSE_BONUS[key] || 0);
+        }
         if (sectionName !== 'track' && det.tracked) base += 3;
       }
       sum += base;
@@ -636,7 +647,7 @@ function setupControls(){
 
     let html = `<p class="muted">${def}</p>`;
 
-       const details = app?.privacy_details?.[term];
+    const details = app?.privacy_details?.[term];
     if (details) {
       const grouped = groupCategoryDetailsByPurpose(details);
 
@@ -650,7 +661,6 @@ function setupControls(){
         ? grouped.subItems.map(s => `<span class="chip">${s}</span>`).join(' ')
         : '<em>No specific sub-items disclosed.</em>';
 
-      // Purpose table (like Apple, purpose blocks with sub-items)
       const purposeRows = grouped.purposes.length
         ? grouped.purposes.map(p => `
             <div class="purpose-row">
