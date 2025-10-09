@@ -207,33 +207,48 @@ const VALID_CATEGORIES = new Set([
  *  - Prefer privacy_details (per-category flags), else fall back to privacy_labels.
  *  - Whitelist categories and dedupe with priority: track > linked > notLinked.
  */
+
+// Apple's standard category names we want to show as chips
+const VALID_CATEGORIES = new Set([
+  "Contact Info","Identifiers","User Content","Usage Data","Diagnostics",
+  "Location","Purchases","Financial Info","Health & Fitness","Sensitive Info",
+  "Browsing History","Search History","Contacts","Messages","Photos or Videos",
+  "Audio Data","Other Data"
+]);
+
+// icon map for chips
+const CHIP_ICONS = {
+  "Purchases":"🛒","Identifiers":"🆔","Usage Data":"📈","Diagnostics":"🛠️",
+  "Location":"📍","Contact Info":"📞","User Content":"📝","Financial Info":"💳",
+  "Contacts":"👥","Messages":"💬","Photos or Videos":"📷","Audio Data":"🎤",
+  "Browsing History":"🧭","Search History":"🔎","Sensitive Info":"⚠️","Other Data":"📦",
+  "Health & Fitness":"🏃"
+};
+
 function buildChipSections(app){
   const details = app.privacy_details || {};
   const labels  = app.privacy_labels  || {};
 
-  const track = new Set(), linked = new Set(), notLinked = new Set();
+  const track = new Set();
+  const linked = new Set();
+  const notLinked = new Set();
 
-  // 1) Use details if present
-  const detailKeys = Object.keys(details || {});
-  if (detailKeys.length) {
-    for (const cat of detailKeys) {
+  // Prefer details if present, otherwise labels
+  const hasDetails = Object.keys(details).length > 0;
+  if (hasDetails) {
+    for (const [cat, d] of Object.entries(details)) {
       if (!VALID_CATEGORIES.has(cat)) continue;
-      const d = details[cat] || {};
-      if (d.tracked)         track.add(cat);
-      else if (d.linked)     linked.add(cat);
-      else if (d.notLinked)  notLinked.add(cat);
+      if (d?.tracked)      track.add(cat);
+      if (d?.linked)       linked.add(cat);
+      if (d?.notLinked)    notLinked.add(cat);
     }
   } else {
-    // 2) Fall back to labels
-    for (const cat of (labels["Data Used to Track You"] || [])) if (VALID_CATEGORIES.has(cat)) track.add(cat);
-    for (const cat of (labels["Data Linked to You"] || []))      if (VALID_CATEGORIES.has(cat)) linked.add(cat);
-    for (const cat of (labels["Data Not Linked to You"] || []))  if (VALID_CATEGORIES.has(cat)) notLinked.add(cat);
+    for (const cat of (labels["Data Used to Track You"] || []))   if (VALID_CATEGORIES.has(cat)) track.add(cat);
+    for (const cat of (labels["Data Linked to You"] || []))       if (VALID_CATEGORIES.has(cat)) linked.add(cat);
+    for (const cat of (labels["Data Not Linked to You"] || []))   if (VALID_CATEGORIES.has(cat)) notLinked.add(cat);
   }
 
-  // Priority dedupe: track > linked > notLinked
-  for (const c of track)  { linked.delete(c); notLinked.delete(c); }
-  for (const c of linked) { notLinked.delete(c); }
-
+  // IMPORTANT: do NOT dedupe across sections; Apple may repeat legitimately
   return {
     track:     Array.from(track),
     linked:    Array.from(linked),
@@ -242,12 +257,18 @@ function buildChipSections(app){
 }
 
 /** Render one chip section; if empty, optionally show a muted 'None disclosed.' */
-function renderChipSection(title, items, showEmpty = ALWAYS_SHOW_SECTIONS){
-  const chips = items.map(i => `<li data-term="${i}">${i}</li>`).join('');
-  const body  = items.length
-    ? `<ul>${chips}</ul>`
-    : (showEmpty ? `<p class="muted small">None disclosed.</p>` : '');
-  return `<h5>${title}</h5>${body}`;
+function chipHTML(label){
+  const icon = CHIP_ICONS[label] || "";
+  return `<li data-term="${label}"><span class="chip-ico" aria-hidden="true">${icon}</span>${label}</li>`;
+}
+
+// title + heading icon
+function renderChipSection(title, items, headingIcon=null, showEmpty = true){
+  const chips = items.map(chipHTML).join('');
+  const body  = items.length ? `<ul>${chips}</ul>`
+                             : (showEmpty ? `<p class="muted small">None disclosed.</p>` : '');
+  const iconEl = headingIcon ? `<span class="h-icon" aria-hidden="true">${headingIcon}</span>` : '';
+  return `<h5>${iconEl}${title}</h5>${body}`;
 }
 
 /** Plain-English fallback bullets if app.tracking_summary is absent */
