@@ -22,7 +22,6 @@ const COUNTRY = 'ie';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const SEARCH_LIMIT = 25;
 const RANGES = [[0,10],[10,20],[20,30],[30,40],[40,50]];
-// Always show the three chip sections even when empty
 const ALWAYS_SHOW_SECTIONS = true;
 
 const DEFAULT_ICON =
@@ -33,7 +32,7 @@ const DEFAULT_ICON =
    ========================= */
 async function loadJSON(path){
   const url = new URL(path, document.baseURI);
-  url.searchParams.set('v', Date.now().toString()); // cache-bust on GH Pages
+  url.searchParams.set('v', Date.now().toString());
   const res = await fetch(url.toString(), { cache: 'no-store' });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   return await res.json();
@@ -53,7 +52,6 @@ function appKey(a){ return `${normaliseName(a.name)}|${normaliseName(a.developer
 
 /**
  * Merge RSS apps with local privacy/extra fields.
- * Prefer strong key: app_id, then name+developer, finally name-only.
  */
 function mergeAppsByName(rssApps, localApps){
   const byKey = new Map();
@@ -128,7 +126,6 @@ async function fetchAppleChart({ kind, limit=50, genre }){
     const images = e['im:image'] || [];
     const icon = images.length ? images[images.length-1].label : null;
     const link = e.link?.attributes?.href || e.id?.label || null;
-    // Try to pull ID from link
     let app_id = null;
     try {
       const m = (link || '').match(/\/id(\d+)/) || [];
@@ -175,7 +172,7 @@ async function liveSearchAllApps(query){
   if (!res.ok) throw new Error(`iTunes Search HTTP ${res.status}`);
   const data = await res.json();
   return (data.results||[]).map((r, idx) => ({
-    rank: r.trackId ? idx+1 : undefined, // not a chart rank
+    rank: r.trackId ? idx+1 : undefined,
     name: r.trackName || r.collectionName || '',
     platform: 'iOS',
     developer: r.sellerName || r.artistName || '',
@@ -193,7 +190,7 @@ function viaProxy(u){
 }
 
 /* =========================
-   Category whitelist + chip builders (single source of truth)
+   Category whitelist + chip builders
    ========================= */
 const VALID_CATEGORIES = new Set([
   "Contact Info","Identifiers","User Content","Usage Data","Diagnostics",
@@ -202,27 +199,12 @@ const VALID_CATEGORIES = new Set([
   "Audio Data","Other Data","Education","Fitness"
 ]);
 
-/**
- * Build the three sections from the richest source available:
- *  - Prefer privacy_details (per-category flags), else fall back to privacy_labels.
- *  - Whitelist categories and dedupe with priority: track > linked > notLinked.
- */
-
-// Apple's standard category names we want to show as chips
-const VALID_CATEGORIES = new Set([
-  "Contact Info","Identifiers","User Content","Usage Data","Diagnostics",
-  "Location","Purchases","Financial Info","Health & Fitness","Sensitive Info",
-  "Browsing History","Search History","Contacts","Messages","Photos or Videos",
-  "Audio Data","Other Data"
-]);
-
-// icon map for chips
 const CHIP_ICONS = {
   "Purchases":"🛒","Identifiers":"🆔","Usage Data":"📈","Diagnostics":"🛠️",
   "Location":"📍","Contact Info":"📞","User Content":"📝","Financial Info":"💳",
   "Contacts":"👥","Messages":"💬","Photos or Videos":"📷","Audio Data":"🎤",
   "Browsing History":"🧭","Search History":"🔎","Sensitive Info":"⚠️","Other Data":"📦",
-  "Health & Fitness":"🏃"
+  "Health & Fitness":"🏃","Education":"🎓","Fitness":"🏋️"
 };
 
 function buildChipSections(app){
@@ -233,7 +215,6 @@ function buildChipSections(app){
   const linked = new Set();
   const notLinked = new Set();
 
-  // Prefer details if present, otherwise labels
   const hasDetails = Object.keys(details).length > 0;
   if (hasDetails) {
     for (const [cat, d] of Object.entries(details)) {
@@ -248,7 +229,7 @@ function buildChipSections(app){
     for (const cat of (labels["Data Not Linked to You"] || []))   if (VALID_CATEGORIES.has(cat)) notLinked.add(cat);
   }
 
-  // IMPORTANT: do NOT dedupe across sections; Apple may repeat legitimately
+  // Do NOT cross-dedupe; Apple may intentionally repeat.
   return {
     track:     Array.from(track),
     linked:    Array.from(linked),
@@ -256,14 +237,12 @@ function buildChipSections(app){
   };
 }
 
-/** Render one chip section; if empty, optionally show a muted 'None disclosed.' */
 function chipHTML(label){
   const icon = CHIP_ICONS[label] || "";
   return `<li data-term="${label}"><span class="chip-ico" aria-hidden="true">${icon}</span>${label}</li>`;
 }
 
-// title + heading icon
-function renderChipSection(title, items, headingIcon=null, showEmpty = true){
+function renderChipSection(title, items, headingIcon=null, showEmpty = ALWAYS_SHOW_SECTIONS){
   const chips = items.map(chipHTML).join('');
   const body  = items.length ? `<ul>${chips}</ul>`
                              : (showEmpty ? `<p class="muted small">None disclosed.</p>` : '');
@@ -271,10 +250,8 @@ function renderChipSection(title, items, headingIcon=null, showEmpty = true){
   return `<h5>${iconEl}${title}</h5>${body}`;
 }
 
-/** Plain-English fallback bullets if app.tracking_summary is absent */
 function fallbackTrackingSummary(sections){
   const { track, linked, notLinked } = sections;
-
   let line = '';
   if (track.length && linked.length) {
     line = 'This app says it collects some data and may use some of it to track you across apps and websites.';
@@ -287,11 +264,8 @@ function fallbackTrackingSummary(sections){
   } else {
     line = 'No data-collection categories were disclosed by the developer.';
   }
-
-  // Add a short “Examples” tail to keep it concrete (max 3 unique items)
   const examples = [...new Set([...track, ...linked, ...notLinked])].slice(0, 3);
   const tail = examples.length ? ` <span class="muted small">Examples: ${examples.join(', ')}.</span>` : '';
-
   return `<p>${line}${tail}</p>`;
 }
 
@@ -315,7 +289,7 @@ function openDrawerHTML(title, html){
 function closeDrawer(){ const d=document.getElementById('glossary-drawer'); const b=document.getElementById('drawer-backdrop'); d.classList.remove('open'); d.setAttribute('aria-hidden','true'); b.hidden = true; }
 
 /* =========================
-   Risk meter (granular + purpose aware) uses same sections
+   Risk meter (granular + purpose aware)
    ========================= */
 const RISK_WEIGHTS = {
   track: {
@@ -394,7 +368,7 @@ function computePrivacyScore(app){
 
 function renderRiskMeter(containerEl, app){
   const { score, band } = computePrivacyScore(app);
-  const pct = Math.max(0, Math.min(100, score)); // 0..100
+  const pct = Math.max(0, Math.min(100, score));
 
   const bandClass =
     band === "High" ? "high" :
@@ -405,13 +379,11 @@ function renderRiskMeter(containerEl, app){
       Data collection intensity
       <span class="risk-badge ${bandClass}">${band}</span>
     </div>
-
     <div class="risk-track" role="img"
          aria-label="Data collection intensity ${Math.round(pct)} out of 100">
       <div class="risk-marker" style="left:${pct}%"
            title="${Math.round(pct)}/100"></div>
     </div>
-
     <div class="risk-scale">
       <span>low</span><span>medium</span><span>high</span>
     </div>
@@ -455,7 +427,6 @@ async function resolveIcon(imgEl, app){
 
 /**
  * Render a list of apps.
- * context: 'board' shows chart rank (or position fallback). 'search' only shows rank if known.
  */
 function renderAppsInto(listEl, apps, context='board'){
   if (!listEl) return;
@@ -471,27 +442,27 @@ function renderAppsInto(listEl, apps, context='board'){
     iconEl.referrerPolicy = 'no-referrer';
     resolveIcon(iconEl, app);
 
-    // Rank text
-    let rankText = '';
+    // Rank
     const hasRealRank = Number.isFinite(app.rank);
-    rankText = (context === 'board') ? `#${hasRealRank ? app.rank : (idx+1)}` : (hasRealRank ? `#${app.rank}` : '');
+    const rankText = (context === 'board') ? `#${hasRealRank ? app.rank : (idx+1)}`
+                                           : (hasRealRank ? `#${app.rank}` : '');
     frag.querySelector('.rank').textContent = rankText;
 
     // Name + platform
     frag.querySelector('.name').textContent = app.name;
     const plat = frag.querySelector('.platform'); if (plat) plat.textContent = 'iOS';
 
-    // Developer label + developer name
+    // Developer label + name
     const devEl = frag.querySelector('.developer');
     if (devEl) {
       const devLabel = document.createElement('span');
-      devLabel.className = 'maker-label'; // reuse CSS class
+      devLabel.className = 'maker-label';
       devLabel.textContent = 'Developer';
       devEl.before(devLabel);
       devEl.textContent = app.developer || '';
     }
 
-    // --- Tracking summary (plain-English if missing) ---
+    // Tracking summary
     const sections = buildChipSections(app);
     const tracking = frag.querySelector('.tracking');
     if (app.tracking_summary && app.tracking_summary.length) {
@@ -500,12 +471,12 @@ function renderAppsInto(listEl, apps, context='board'){
       tracking.innerHTML = fallbackTrackingSummary(sections);
     }
 
-// --- Privacy chips with heading icons ---
-const privacy = frag.querySelector('.privacy');
-privacy.innerHTML =
-  renderChipSection('Data Used to Track You', sections.track, '🎯') +
-  renderChipSection('Data Linked to You', sections.linked, '🔗') +
-  renderChipSection('Data Not Linked to You', sections.notLinked, '🚫');
+    // Privacy chips with heading icons
+    const privacy = frag.querySelector('.privacy');
+    privacy.innerHTML =
+      renderChipSection('Data Used to Track You', sections.track, '🎯') +
+      renderChipSection('Data Linked to You', sections.linked, '🔗') +
+      renderChipSection('Data Not Linked to You', sections.notLinked, '🚫');
 
     // Risk meter
     const riskEl = frag.querySelector('.risk');
@@ -588,7 +559,6 @@ function setupRangeControls(boardKey){
 function setupControls(){
   ['free','paid','games'].forEach(setupRangeControls);
 
-  // Refresh button clears caches and reloads
   document.getElementById('refresh-data')?.addEventListener('click', (e) => {
     e.preventDefault();
     ['free','paid','games'].forEach(k => localStorage.removeItem('ff-cache:rss:'+k+':'+RSS_LIMIT));
@@ -596,12 +566,10 @@ function setupControls(){
     init(true);
   });
 
-  // Drawer controls
   document.getElementById('drawer-close')?.addEventListener('click', closeDrawer);
   document.getElementById('drawer-backdrop')?.addEventListener('click', closeDrawer);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
-  // Glossary chip clicks -> open drawer with definition + app-specific details (if available)
   document.body.addEventListener('click', async (e) => {
     const liChip = e.target.closest('.privacy li');
     if (!liChip) return;
@@ -649,7 +617,7 @@ function setupControls(){
     openDrawerHTML(term, html);
   });
 
-  // Search (local first, then live iTunes Search)
+  // Search
   const input = document.getElementById('search-input');
   const resultsEl = document.getElementById('search-results');
   const noRes = document.getElementById('no-results');
@@ -717,10 +685,9 @@ function setupControls(){
 /* =========================
    Data loading with safe fallback
    ========================= */
-const USE_LOCAL_ONLY = false; // live mode
+const USE_LOCAL_ONLY = false;
 
 async function loadBoards(){
-  // Load local dataset (for enrichment + fallback)
   let local = { apps: [], as_of: '' };
   try { local = await loadJSON('data/apps.json'); } catch {}
   state.localApps = local.apps || [];
