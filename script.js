@@ -207,27 +207,39 @@ const CHIP_ICONS = {
   "Health & Fitness":"🏃","Education":"🎓","Fitness":"🏋️"
 };
 
+// Use App Store pills (privacy_labels) as the source of truth for the three sections.
+// Fall back to privacy_details only if labels are missing.
+// details are still used for the drawer and risk scoring (purposes/sub-items).
 function buildChipSections(app){
-  const details = app.privacy_details || {};
   const labels  = app.privacy_labels  || {};
+  const details = app.privacy_details || {};
+  const valid = (c) => VALID_CATEGORIES.has(c);
 
-  const track = new Set();
-  const linked = new Set();
-  const notLinked = new Set();
+  // 1) Try to use labels exactly as Apple shows them
+  let track     = (labels["Data Used to Track You"]     || []).filter(valid);
+  let linked    = (labels["Data Linked to You"]         || []).filter(valid);
+  let notLinked = (labels["Data Not Linked to You"]     || []).filter(valid);
 
-  const hasDetails = Object.keys(details).length > 0;
-  if (hasDetails) {
+  const haveLabels = track.length || linked.length || notLinked.length;
+
+  if (!haveLabels) {
+    // 2) Fall back to details flags if there are no labels
+    const t = new Set(), l = new Set(), n = new Set();
     for (const [cat, d] of Object.entries(details)) {
-      if (!VALID_CATEGORIES.has(cat)) continue;
-      if (d?.tracked)      track.add(cat);
-      if (d?.linked)       linked.add(cat);
-      if (d?.notLinked)    notLinked.add(cat);
+      if (!valid(cat)) continue;
+      if (d?.tracked)      t.add(cat);
+      if (d?.linked)       l.add(cat);
+      if (d?.notLinked)    n.add(cat);
     }
-  } else {
-    for (const cat of (labels["Data Used to Track You"] || []))   if (VALID_CATEGORIES.has(cat)) track.add(cat);
-    for (const cat of (labels["Data Linked to You"] || []))       if (VALID_CATEGORIES.has(cat)) linked.add(cat);
-    for (const cat of (labels["Data Not Linked to You"] || []))   if (VALID_CATEGORIES.has(cat)) notLinked.add(cat);
+    track     = Array.from(t);
+    linked    = Array.from(l);
+    notLinked = Array.from(n);
   }
+
+  // 3) Do not “promote” categories from linked → tracked or dedupe across sections.
+  // We want to mirror Apple’s pills exactly.
+  return { track, linked, notLinked };
+}
 
   // Do NOT cross-dedupe; Apple may intentionally repeat.
   return {
