@@ -158,28 +158,44 @@ const CHIP_ICONS = {
 };
 
 // ✅ Fix: Trust Apple’s “privacy_labels” as authoritative, fallback to details
-function buildChipSections(app){
-  const labels  = app.privacy_labels  || {};
+function buildChipSections(app) {
   const details = app.privacy_details || {};
-  const valid = (c) => VALID_CATEGORIES.has(c);
+  const labels  = app.privacy_labels  || {};
 
-  let track     = (labels["Data Used to Track You"]     || []).filter(valid);
-  let linked    = (labels["Data Linked to You"]         || []).filter(valid);
-  let notLinked = (labels["Data Not Linked to You"]     || []).filter(valid);
-  const haveLabels = track.length || linked.length || notLinked.length;
+  const track = new Set();
+  const linked = new Set();
+  const notLinked = new Set();
 
-  if (!haveLabels) {
-    const t = new Set(), l = new Set(), n = new Set();
+  const hasDetails = Object.keys(details).length > 0;
+
+  if (hasDetails) {
+    // Prefer per-category flags from privacy_details
     for (const [cat, d] of Object.entries(details)) {
-      if (!valid(cat)) continue;
-      if (d?.tracked) t.add(cat);
-      if (d?.linked)  l.add(cat);
-      if (d?.notLinked) n.add(cat);
+      if (!VALID_CATEGORIES.has(cat)) continue;
+      if (d?.tracked)      track.add(cat);
+      else if (d?.linked)  linked.add(cat);
+      else if (d?.notLinked) notLinked.add(cat);
     }
-    track = [...t]; linked = [...l]; notLinked = [...n];
+  } else {
+    // Fall back to the three arrays in privacy_labels
+    (labels["Data Used to Track You"] || [])
+      .filter(c => VALID_CATEGORIES.has(c))
+      .forEach(c => track.add(c));
+
+    (labels["Data Linked to You"] || [])
+      .filter(c => VALID_CATEGORIES.has(c) && !track.has(c))
+      .forEach(c => linked.add(c));
+
+    (labels["Data Not Linked to You"] || [])
+      .filter(c => VALID_CATEGORIES.has(c) && !track.has(c) && !linked.has(c))
+      .forEach(c => notLinked.add(c));
   }
 
-  return { track, linked, notLinked };
+  return {
+    track:     Array.from(track),
+    linked:    Array.from(linked),
+    notLinked: Array.from(notLinked)
+  };
 }
 
 function chipHTML(label){
