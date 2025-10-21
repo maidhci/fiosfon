@@ -5,7 +5,7 @@
    ========================= */
 const state = {
   boards: {
-    free:  { apps: [], asOf: '', rangeIndex: 0 }, // 0..4 -> 1–10 ... 41–50
+    free:  { apps: [], asOf: '', rangeIndex: 0 },
     paid:  { apps: [], asOf: '', rangeIndex: 0 },
     games: { apps: [], asOf: '', rangeIndex: 0 }
   },
@@ -50,9 +50,9 @@ async function getCached(key, loader, ttlMs = CACHE_TTL_MS){
 function normaliseName(n){ return (n||'').toLowerCase().replace(/\s+/g,' ').trim(); }
 function appKey(a){ return `${normaliseName(a.name)}|${normaliseName(a.developer)}`; }
 
-/**
- * Merge RSS apps with local privacy/extra fields.
- */
+/* =========================
+   Merge RSS + local data
+   ========================= */
 function mergeAppsByName(rssApps, localApps){
   const byKey = new Map();
   (localApps || []).forEach(a => {
@@ -80,12 +80,14 @@ function mergeAppsByName(rssApps, localApps){
   });
 }
 
+/* =========================
+   Sharing + Permalink
+   ========================= */
 function appPermalink(app) {
   const u = new URL(location.href);
   u.searchParams.set('app', app.name);
   return u.toString();
 }
-
 function showToast(msg) {
   const el = document.getElementById('toast');
   if (!el) return;
@@ -94,17 +96,14 @@ function showToast(msg) {
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => el.classList.remove('show'), 1400);
 }
-
 async function shareApp(app) {
   const url = appPermalink(app);
   const title = `${app.name} – data collection overview`;
   const text =
-    `${app.name} by ${app.developer || 'Developer'}\n` +
-    `See data types (linked/track) and the collection intensity meter.`;
-
+    `${app.name} by ${app.developer || 'Developer'}\nSee data types and collection intensity meter.`;
   if (navigator.share) {
     try { await navigator.share({ title, text, url }); return; }
-    catch (_) {}
+    catch(_) {}
   }
   try { await navigator.clipboard.writeText(url); showToast('Link copied'); }
   catch { window.prompt('Copy this link:', url); }
@@ -120,17 +119,14 @@ function rssUrl({ kind, limit=50, country=COUNTRY, genre }){
 }
 async function fetchAppleChart({ kind, limit=50, genre }){
   const res = await fetch(rssUrl({kind, limit, genre}));
-  if (!res.ok) throw new Error(`Apple RSS HTTP ${res.status} (${kind}${genre?` g=${genre}`:''})`);
+  if (!res.ok) throw new Error(`Apple RSS HTTP ${res.status}`);
   const data = await res.json();
   const apps = (data.feed?.entry || []).map((e, idx) => {
     const images = e['im:image'] || [];
     const icon = images.length ? images[images.length-1].label : null;
     const link = e.link?.attributes?.href || e.id?.label || null;
     let app_id = null;
-    try {
-      const m = (link || '').match(/\/id(\d+)/) || [];
-      app_id = m[1] || null;
-    } catch {}
+    try { const m = (link || '').match(/\/id(\d+)/) || []; app_id = m[1] || null; } catch {}
     return {
       rank: idx+1,
       name: e['im:name']?.label || '',
@@ -144,53 +140,8 @@ async function fetchAppleChart({ kind, limit=50, genre }){
   return { as_of: new Date().toLocaleDateString(), apps };
 }
 
-// iTunes Search (artwork + live search)
-async function findArtworkBySearch(name, developer){
-  const cacheKey = `art:${name}::${developer||''}`;
-  const hit = localStorage.getItem(cacheKey);
-  if (hit) return hit;
-  const q = encodeURIComponent(`${name} ${developer||''}`.trim());
-  const url = `https://itunes.apple.com/search?term=${q}&entity=software&country=${COUNTRY}&limit=${SEARCH_LIMIT}`;
-  try{
-    const res = await fetch(url);
-    if(!res.ok) throw new Error('search http '+res.status);
-    const json = await res.json();
-    const art = json.results?.[0]?.artworkUrl100 || json.results?.[0]?.artworkUrl60 || json.results?.[0]?.artworkUrl512 || null;
-    if (art) localStorage.setItem(cacheKey, art);
-    return art;
-  }catch{ return null; }
-}
-
-let searchAbort = null;
-async function liveSearchAllApps(query){
-  if (searchAbort) searchAbort.abort();
-  searchAbort = new AbortController();
-  const signal = searchAbort.signal;
-
-  const term = encodeURIComponent(query.trim());
-  const res = await fetch(`https://itunes.apple.com/search?term=${term}&entity=software&country=${COUNTRY}&limit=${SEARCH_LIMIT}`, { signal });
-  if (!res.ok) throw new Error(`iTunes Search HTTP ${res.status}`);
-  const data = await res.json();
-  return (data.results||[]).map((r, idx) => ({
-    rank: r.trackId ? idx+1 : undefined,
-    name: r.trackName || r.collectionName || '',
-    platform: 'iOS',
-    developer: r.sellerName || r.artistName || '',
-    icon: r.artworkUrl100 || r.artworkUrl60 || r.artworkUrl512 || null,
-    sources: r.trackViewUrl ? [{label:'App Store', url:r.trackViewUrl}] : []
-  }));
-}
-
-function viaProxy(u){
-  try{
-    if (!u || u.startsWith('data:')) return u;
-    const clean = u.replace(/^https?:\/\//,'');
-    return `https://images.weserv.nl/?url=${encodeURIComponent(clean)}&w=100&h=100&fit=contain&we`;
-  } catch { return u; }
-}
-
 /* =========================
-   Category whitelist + chip builders
+   Chips + icons (new)
    ========================= */
 const VALID_CATEGORIES = new Set([
   "Contact Info","Identifiers","User Content","Usage Data","Diagnostics",
@@ -198,7 +149,6 @@ const VALID_CATEGORIES = new Set([
   "Browsing History","Search History","Contacts","Messages","Photos or Videos",
   "Audio Data","Other Data","Education","Fitness"
 ]);
-
 const CHIP_ICONS = {
   "Purchases":"🛒","Identifiers":"🆔","Usage Data":"📈","Diagnostics":"🛠️",
   "Location":"📍","Contact Info":"📞","User Content":"📝","Financial Info":"💳",
@@ -207,61 +157,45 @@ const CHIP_ICONS = {
   "Health & Fitness":"🏃","Education":"🎓","Fitness":"🏋️"
 };
 
-// Use App Store pills (privacy_labels) as the source of truth for the three sections.
-// Fall back to privacy_details only if labels are missing.
-// details are still used for the drawer and risk scoring (purposes/sub-items).
+// ✅ Fix: Trust Apple’s “privacy_labels” as authoritative, fallback to details
 function buildChipSections(app){
   const labels  = app.privacy_labels  || {};
   const details = app.privacy_details || {};
   const valid = (c) => VALID_CATEGORIES.has(c);
 
-  // 1) Try to use labels exactly as Apple shows them
   let track     = (labels["Data Used to Track You"]     || []).filter(valid);
   let linked    = (labels["Data Linked to You"]         || []).filter(valid);
   let notLinked = (labels["Data Not Linked to You"]     || []).filter(valid);
-
   const haveLabels = track.length || linked.length || notLinked.length;
 
   if (!haveLabels) {
-    // 2) Fall back to details flags if there are no labels
     const t = new Set(), l = new Set(), n = new Set();
     for (const [cat, d] of Object.entries(details)) {
       if (!valid(cat)) continue;
-      if (d?.tracked)      t.add(cat);
-      if (d?.linked)       l.add(cat);
-      if (d?.notLinked)    n.add(cat);
+      if (d?.tracked) t.add(cat);
+      if (d?.linked)  l.add(cat);
+      if (d?.notLinked) n.add(cat);
     }
-    track     = Array.from(t);
-    linked    = Array.from(l);
-    notLinked = Array.from(n);
+    track = [...t]; linked = [...l]; notLinked = [...n];
   }
 
-  // 3) Do not “promote” categories from linked → tracked or dedupe across sections.
-  // We want to mirror Apple’s pills exactly.
   return { track, linked, notLinked };
-}
-
-  // Do NOT cross-dedupe; Apple may intentionally repeat.
-  return {
-    track:     Array.from(track),
-    linked:    Array.from(linked),
-    notLinked: Array.from(notLinked)
-  };
 }
 
 function chipHTML(label){
   const icon = CHIP_ICONS[label] || "";
-  return `<li data-term="${label}"><span class="chip-ico" aria-hidden="true">${icon}</span>${label}</li>`;
+  return `<li data-term="${label}"><span class="chip-ico">${icon}</span>${label}</li>`;
 }
-
-function renderChipSection(title, items, headingIcon=null, showEmpty = ALWAYS_SHOW_SECTIONS){
+function renderChipSection(title, items, headingIcon=null, showEmpty=ALWAYS_SHOW_SECTIONS){
   const chips = items.map(chipHTML).join('');
-  const body  = items.length ? `<ul>${chips}</ul>`
-                             : (showEmpty ? `<p class="muted small">None disclosed.</p>` : '');
-  const iconEl = headingIcon ? `<span class="h-icon" aria-hidden="true">${headingIcon}</span>` : '';
+  const body = items.length ? `<ul>${chips}</ul>`
+                            : (showEmpty ? `<p class="muted small">None disclosed.</p>` : '');
+  const iconEl = headingIcon ? `<span class="h-icon">${headingIcon}</span>` : '';
   return `<h5>${iconEl}${title}</h5>${body}`;
 }
-
+/* =========================
+   Plain-English summary (fallback)
+   ========================= */
 function fallbackTrackingSummary(sections){
   const { track, linked, notLinked } = sections;
   let line = '';
@@ -281,7 +215,9 @@ function fallbackTrackingSummary(sections){
   return `<p>${line}${tail}</p>`;
 }
 
-// Friendly order and labels for Apple purposes
+/* =========================
+   Purpose mapping (for drawer + scoring)
+   ========================= */
 const PURPOSE_ORDER = [
   "Third-Party Advertising",
   "Developer's Advertising or Marketing",
@@ -291,7 +227,6 @@ const PURPOSE_ORDER = [
   "Fraud Prevention, Security, and Compliance",
   "Other Purposes"
 ];
-
 const PURPOSE_LABELS = {
   "Third-Party Advertising": "Third-party advertising",
   "Developer's Advertising or Marketing": "Developer’s advertising or marketing",
@@ -301,19 +236,46 @@ const PURPOSE_LABELS = {
   "Fraud Prevention, Security, and Compliance": "Fraud prevention & compliance",
   "Other Purposes": "Other purposes"
 };
+// bonuses used in scoring (soft influence)
+const PURPOSE_BONUS = {
+  "Advertising": 6,
+  "Developer's Advertising": 4,
+  "Product Personalization": 3,
+  "Analytics": 2,
+  "Fraud Prevention": 3,
+  "App Functionality": 0,
+  "Other Purposes": 1
+};
+// normalise Apple text → our buckets
+const PURPOSE_ALIASES = {
+  "Third-Party Advertising": "Advertising",
+  "Third Party Advertising": "Advertising",
+  "Advertising": "Advertising",
+  "Developer's Advertising or Marketing": "Developer's Advertising",
+  "Developer’s Advertising or Marketing": "Developer's Advertising",
+  "Analytics": "Analytics",
+  "Product Personalization": "Product Personalization",
+  "Product Personalisation": "Product Personalization",
+  "Personalization": "Product Personalization",
+  "Personalisation": "Product Personalization",
+  "App Functionality": "App Functionality",
+  "Fraud Prevention, Security, and Compliance": "Fraud Prevention",
+  "Fraud Prevention": "Fraud Prevention",
+  "Security": "Fraud Prevention",
+  "Compliance": "Fraud Prevention",
+  "Other Purposes": "Other Purposes",
+  "Other": "Other Purposes"
+};
+function normalizePurpose(p){ return PURPOSE_ALIASES[p] || p; }
 
-function groupCategoryDetailsByPurpose(catDetail) {
+// turn a per-category detail block into display rows by purpose
+function groupCategoryDetailsByPurpose(catDetail){
   if (!catDetail) return null;
   const subItems = Array.isArray(catDetail.subtypes) ? catDetail.subtypes : [];
   const set = new Set(Array.isArray(catDetail.purposes) ? catDetail.purposes : []);
   const grouped = PURPOSE_ORDER
     .filter(p => set.has(p))
-    .map(p => ({
-      purpose: p,
-      label: PURPOSE_LABELS[p] || p,
-      items: subItems
-    }));
-
+    .map(p => ({ purpose: p, label: PURPOSE_LABELS[p] || p, items: subItems }));
   return {
     status: {
       tracked: !!catDetail.tracked,
@@ -326,90 +288,34 @@ function groupCategoryDetailsByPurpose(catDetail) {
 }
 
 /* =========================
-   Glossary drawer (load + open/close)
+   Glossary drawer
    ========================= */
 let GLOSSARY = null;
-
 async function loadGlossary(){
   if (GLOSSARY) return GLOSSARY;
-  try {
-    GLOSSARY = await loadJSON('data/glossary.json');
-    if (!GLOSSARY || typeof GLOSSARY !== 'object') GLOSSARY = { terms: {} };
-    if (!GLOSSARY.terms) GLOSSARY.terms = {};
-  } catch {
-    GLOSSARY = { terms: {} };
-  }
+  try { GLOSSARY = await loadJSON('data/glossary.json'); }
+  catch { GLOSSARY = { terms:{} }; }
   return GLOSSARY;
 }
-
 function openDrawerHTML(title, html){
-  const drawer = document.getElementById('glossary-drawer');
-  const backdrop = document.getElementById('drawer-backdrop');
-  if (!drawer || !backdrop) return;
-
-  const t = document.getElementById('glossary-title');
-  const b = document.getElementById('glossary-body');
-  if (t) t.textContent = title || 'Privacy term';
-  if (b) b.innerHTML = html || '<p>No description available.</p>';
-
-  drawer.classList.add('open');
-  drawer.setAttribute('aria-hidden', 'false');
-  backdrop.hidden = false;
+  const d = document.getElementById('glossary-drawer');
+  const b = document.getElementById('drawer-backdrop');
+  document.getElementById('glossary-title').textContent = title || 'Privacy term';
+  document.getElementById('glossary-body').innerHTML = html || '<p>No description available.</p>';
+  d.classList.add('open');
+  d.setAttribute('aria-hidden','false');
+  b.hidden = false;
 }
-
 function closeDrawer(){
-  const drawer = document.getElementById('glossary-drawer');
-  const backdrop = document.getElementById('drawer-backdrop');
-  if (!drawer || !backdrop) return;
-
-  drawer.classList.remove('open');
-  drawer.setAttribute('aria-hidden', 'true');
-  backdrop.hidden = true;
+  const d = document.getElementById('glossary-drawer');
+  const b = document.getElementById('drawer-backdrop');
+  d.classList.remove('open');
+  d.setAttribute('aria-hidden','true');
+  b.hidden = true;
 }
 
 /* =========================
-   Purpose → bonus normalization (for risk scoring)
-   ========================= */
-const PURPOSE_BONUS = {
-  "Advertising": 6,
-  "Developer's Advertising": 4,
-  "Personalization": 4,
-  "Product Personalization": 3,
-  "Analytics": 2,
-  "Fraud Prevention": 3,
-  "App Functionality": 0,
-  "Other Purposes": 1
-};
-
-const PURPOSE_ALIASES = {
-  "Third-Party Advertising": "Advertising",
-  "Third Party Advertising": "Advertising",
-  "Advertising": "Advertising",
-
-  "Developer's Advertising or Marketing": "Developer's Advertising",
-  "Developer’s Advertising or Marketing": "Developer's Advertising",
-
-  "Analytics": "Analytics",
-
-  "Product Personalization": "Product Personalization",
-  "Product Personalisation": "Product Personalization",
-  "Personalization": "Product Personalization",
-  "Personalisation": "Product Personalization",
-
-  "App Functionality": "App Functionality",
-
-  "Fraud Prevention, Security, and Compliance": "Fraud Prevention",
-  "Fraud Prevention": "Fraud Prevention",
-  "Security": "Fraud Prevention",
-  "Compliance": "Fraud Prevention",
-
-  "Other Purposes": "Other Purposes",
-  "Other": "Other Purposes"
-};
-function normalizePurpose(p) { return PURPOSE_ALIASES[p] || p; }
-
-/* =========================
-   Risk meter (granular + purpose aware)
+   Risk meter (purpose-aware)
    ========================= */
 const RISK_WEIGHTS = {
   track: {
@@ -431,16 +337,12 @@ const RISK_WEIGHTS = {
     "Audio Data": 1, "Messages": 2, "Contacts": 1, "Sensitive Info": 3
   }
 };
-
 const SECTION_CAPS = { track: 70, linked: 50, notLinked: 20 };
-
-function smoothScale(x, max) {
+function smoothScale(x, max){
   const t = Math.max(0, Math.min(1, x / max));
   const k = 5;
-  const y = 1 / (1 + Math.exp(-k * (t - 0.5)));
-  return y * 100;
+  return (1 / (1 + Math.exp(-k * (t - 0.5)))) * 100;
 }
-
 function computePrivacyScore(app){
   const details = app.privacy_details || {};
   const { track, linked, notLinked } = buildChipSections(app);
@@ -452,11 +354,8 @@ function computePrivacyScore(app){
       let base = weights[cat] || 0;
       const det = details[cat];
       if (det && Array.isArray(det?.purposes)) {
-        for (const p of det.purposes) {
-          const key = normalizePurpose(p);
-          base += (PURPOSE_BONUS[key] || 0);
-        }
-        if (sectionName !== 'track' && det.tracked) base += 3;
+        for (const p of det.purposes) base += (PURPOSE_BONUS[normalizePurpose(p)] || 0);
+        if (sectionName !== 'track' && det.tracked) base += 3; // slight penalty if also tracked
       }
       sum += base;
     });
@@ -471,46 +370,37 @@ function computePrivacyScore(app){
   const raw = sTrack + sLinked + sNotLinked;
   const score = Math.round(smoothScale(raw, 140));
 
-  let band = "Low";
-  if (score >= 66) band = "High";
-  else if (score >= 33) band = "Medium";
+  let band = 'Low';
+  if (score >= 66) band = 'High';
+  else if (score >= 33) band = 'Medium';
 
   return { score, band, parts: { sTrack, sLinked, sNotLinked } };
 }
-
 function renderRiskMeter(containerEl, app){
   const { score, band } = computePrivacyScore(app);
   const pct = Math.max(0, Math.min(100, score));
-
-  const bandClass =
-    band === "High" ? "high" :
-    band === "Medium" ? "med" : "low";
-
+  const bandClass = band === 'High' ? 'high' : (band === 'Medium' ? 'med' : 'low');
   containerEl.innerHTML = `
     <div class="risk-label">
       Data collection intensity
       <span class="risk-badge ${bandClass}">${band}</span>
     </div>
-    <div class="risk-track" role="img"
-         aria-label="Data collection intensity ${Math.round(pct)} out of 100">
+    <div class="risk-track" role="img" aria-label="Data collection intensity ${Math.round(pct)} out of 100">
       <div class="risk-marker" style="left:${pct}%"
            title="${Math.round(pct)}/100"></div>
     </div>
-    <div class="risk-scale">
-      <span>low</span><span>medium</span><span>high</span>
-    </div>
+    <div class="risk-scale"><span>low</span><span>medium</span><span>high</span></div>
   `;
 }
 
 /* =========================
-   Rendering
+   Rendering helpers
    ========================= */
 function renderAsOf(boardKey){
   const el = document.getElementById(`asof-${boardKey}`);
   const val = state.boards[boardKey].asOf;
   if (el) el.textContent = val ? `(updated ${val})` : '';
 }
-
 async function resolveIcon(imgEl, app){
   const trySearchFirst = app.icon && /mzstatic\.com/.test(app.icon);
   const setWithFallbacks = (primaryUrl) => {
@@ -537,9 +427,9 @@ async function resolveIcon(imgEl, app){
   imgEl.src = DEFAULT_ICON;
 }
 
-/**
- * Render a list of apps.
- */
+/* =========================
+   Render cards + boards
+   ========================= */
 function renderAppsInto(listEl, apps, context='board'){
   if (!listEl) return;
   listEl.innerHTML = '';
@@ -554,17 +444,13 @@ function renderAppsInto(listEl, apps, context='board'){
     iconEl.referrerPolicy = 'no-referrer';
     resolveIcon(iconEl, app);
 
-    // Rank
     const hasRealRank = Number.isFinite(app.rank);
-    const rankText = (context === 'board') ? `#${hasRealRank ? app.rank : (idx+1)}`
-                                           : (hasRealRank ? `#${app.rank}` : '');
+    const rankText = (context === 'board') ? `#${hasRealRank ? app.rank : (idx+1)}` : (hasRealRank ? `#${app.rank}` : '');
     frag.querySelector('.rank').textContent = rankText;
 
-    // Name + platform
     frag.querySelector('.name').textContent = app.name;
     const plat = frag.querySelector('.platform'); if (plat) plat.textContent = 'iOS';
 
-    // Developer label + name
     const devEl = frag.querySelector('.developer');
     if (devEl) {
       const devLabel = document.createElement('span');
@@ -574,7 +460,6 @@ function renderAppsInto(listEl, apps, context='board'){
       devEl.textContent = app.developer || '';
     }
 
-    // Tracking summary
     const sections = buildChipSections(app);
     const tracking = frag.querySelector('.tracking');
     if (app.tracking_summary && app.tracking_summary.length) {
@@ -583,18 +468,15 @@ function renderAppsInto(listEl, apps, context='board'){
       tracking.innerHTML = fallbackTrackingSummary(sections);
     }
 
-    // Privacy chips with heading icons
     const privacy = frag.querySelector('.privacy');
     privacy.innerHTML =
       renderChipSection('Data Used to Track You', sections.track, '🎯') +
       renderChipSection('Data Linked to You', sections.linked, '🔗') +
       renderChipSection('Data Not Linked to You', sections.notLinked, '🚫');
 
-    // Risk meter
     const riskEl = frag.querySelector('.risk');
     if (riskEl) renderRiskMeter(riskEl, app);
 
-    // Sources + Share
     const sources = frag.querySelector('.sources');
     const shareBtn = frag.querySelector('.share-btn');
 
@@ -605,7 +487,6 @@ function renderAppsInto(listEl, apps, context='board'){
     } else {
       sources.innerHTML = '';
     }
-
     if (shareBtn) {
       shareBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -640,7 +521,6 @@ function renderRights(){
     container.appendChild(card);
   });
 }
-
 /* =========================
    UI wiring
    ========================= */
@@ -652,6 +532,7 @@ function setActiveRangeUI(boardKey){
     btn.setAttribute('aria-selected', String(i===idx));
   });
 }
+
 function setupRangeControls(boardKey){
   const group = document.getElementById(`range-${boardKey}`);
   if (!group) return;
@@ -669,8 +550,10 @@ function setupRangeControls(boardKey){
 }
 
 function setupControls(){
+  // range buttons for each board
   ['free','paid','games'].forEach(setupRangeControls);
 
+  // Refresh button clears caches and reloads
   document.getElementById('refresh-data')?.addEventListener('click', (e) => {
     e.preventDefault();
     ['free','paid','games'].forEach(k => localStorage.removeItem('ff-cache:rss:'+k+':'+RSS_LIMIT));
@@ -678,6 +561,7 @@ function setupControls(){
     init(true);
   });
 
+  // Drawer controls
   document.getElementById('drawer-close')?.addEventListener('click', closeDrawer);
   document.getElementById('drawer-backdrop')?.addEventListener('click', closeDrawer);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
@@ -762,7 +646,7 @@ function setupControls(){
     }
   });
 
-  // Search
+  /* -------- Search (local first, then live) -------- */
   const input = document.getElementById('search-input');
   const resultsEl = document.getElementById('search-results');
   const noRes = document.getElementById('no-results');
@@ -777,6 +661,7 @@ function setupControls(){
       return;
     }
 
+    // local combined (deduped)
     const seen = new Set();
     const localCombined = ['free','paid','games']
       .flatMap(k => state.boards[k].apps)
@@ -791,6 +676,7 @@ function setupControls(){
     renderAppsInto(resultsEl, localCombined, 'search');
     if (noRes) noRes.hidden = localCombined.length > 0;
 
+    // live enrichment after debounce
     clearTimeout(debounceId);
     debounceId = setTimeout(async () => {
       try{
@@ -830,9 +716,10 @@ function setupControls(){
 /* =========================
    Data loading with safe fallback
    ========================= */
-const USE_LOCAL_ONLY = false;
+const USE_LOCAL_ONLY = false; // set true to force offline/local
 
 async function loadBoards(){
+  // Load local dataset (for enrichment + fallback)
   let local = { apps: [], as_of: '' };
   try { local = await loadJSON('data/apps.json'); } catch {}
   state.localApps = local.apps || [];
@@ -841,7 +728,7 @@ async function loadBoards(){
     const asof = local.as_of || new Date().toLocaleDateString();
     ['free','paid','games'].forEach(k => {
       state.boards[k].apps = [...state.localApps];
-      state.boards[k].asOf = asof + ' (local)';
+      state.boards[k].asOf = `${asof} (local)`;
     });
     return;
   }
@@ -858,12 +745,12 @@ async function loadBoards(){
   const gamesRss = await safeFetch('rss:games:'+RSS_LIMIT,
                     () => fetchAppleChart({ kind:'topfreeapplications', limit:RSS_LIMIT, genre:GENRE_GAMES }));
 
-  const useLocal = (rss) => (rss.apps && rss.apps.length) ? rss
-                      : { as_of: local.as_of || '', apps: [...state.localApps] };
+  const localOr = (rss) => (rss.apps && rss.apps.length) ? rss
+                     : { as_of: local.as_of || '', apps: [...state.localApps] };
 
-  const free  = useLocal(freeRss);
-  const paid  = useLocal(paidRss);
-  const games = useLocal(gamesRss);
+  const free  = localOr(freeRss);
+  const paid  = localOr(paidRss);
+  const games = localOr(gamesRss);
 
   state.boards.free.apps  = mergeAppsByName(free.apps,  state.localApps);
   state.boards.free.asOf  = free.as_of  || local.as_of || '';
@@ -875,6 +762,9 @@ async function loadBoards(){
   state.boards.games.asOf = games.as_of || local.as_of || '';
 }
 
+/* =========================
+   Init
+   ========================= */
 async function init(forceRefresh=false){
   try {
     await loadBoards();
